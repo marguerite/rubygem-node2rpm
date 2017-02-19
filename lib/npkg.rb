@@ -1,0 +1,6 @@
+require 'npkg/version.rb'
+require 'npkg/download.rb'
+require 'npkg/dependency.rb'
+require 'npkg/tree.rb'
+require 'npkg/history.rb'
+require 'npkg/parent.rb'
