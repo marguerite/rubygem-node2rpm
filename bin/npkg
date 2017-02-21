@@ -9,15 +9,23 @@ require 'optparse'
 options = Hash.new
 parser = OptionParser.new do |opts|
 	opts.banner = "Usage: npkg [options]"
-	opts.separator ""
+	opts.separator "Generate full dependency map for versioned/non-versioned node module."
 	opts.separator "Specific Options:"
 
-	opts.on("-v [ver]", "Specify the mod version") do |ver|
+	opts.on("-m <mod>", "Specify the mod (Required)") do |mod|
+		options[:module] = mod
+	end
+
+	opts.on("-v <ver>", "Specify the mod version") do |ver|
 		options[:version] = ver
 	end
 
-	opts.on("-m [mod]", "Generate full dependency map for mod and version.") do |mod|
-		options[:module] = mod
+	opts.on("-r <dependency,version>", Array, "Exclude the versioned dependency from the dependency map (package split)") do |mod|
+		if options[:exclusion].nil?
+			options[:exclusion] = {mod[0]=>mod[1]}
+		else
+			options[:exclusion][mod[0]] = mod[1]
+		end
 	end
 
 	opts.separator ""
@@ -34,7 +42,7 @@ parser = OptionParser.new do |opts|
 end
 parser.parse!(ARGV)
 
-json = NPKG::Tree.new(options[:module],options[:version]).generate
+json = NPKG::Tree.new(options[:module],options[:version]).generate(options[:exclusion])
 
 open(options[:module] + ".json","w") do |f|
 	f.write JSON.pretty_generate(json)

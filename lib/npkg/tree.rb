@@ -6,7 +6,7 @@ module NPKG
 			@version = NPKG::History.new(@pkg).has?(version) ? version : NPKG::History.new(@pkg).last
 		end
 
-		def generate(parent=nil,parentversion=nil, pkg=@pkg,version=@version,mega={})
+		def generate(exclusion={},parent=nil,parentversion=nil, pkg=@pkg,version=@version,mega={})
 			parent ||= "_root"
 			parentversion ||= "0.0.0"
 			dependencies = NPKG::Dependency.new(pkg).dependencies
@@ -19,12 +19,16 @@ module NPKG
 					end
 				end
 			else
-				unless NPKG::JSONObject.new(mega).has?(pkg,version)	
-					walker = eval(NPKG::Parent.new(parent,parentversion,mega).walk("mega"))
-					walker[pkg] = {:version=>version, :parent=>parent, :parentversion=>parentversion, :dependencies=>{}}
-					unless dependencies.nil?
-						dependencies.each do |k,v|
-							generate(pkg,version,k,v,mega)
+				unless NPKG::JSONObject.new(mega).has?(pkg,version)
+					# occur the first time, so apply exclusion here.
+					# we need to escape for some dependencies to allow package split.
+					unless NPKG::Exclusion.new(exclusion).exclude?(pkg,version)
+						walker = eval(NPKG::Parent.new(parent,parentversion,mega).walk("mega"))
+						walker[pkg] = {:version=>version, :parent=>parent, :parentversion=>parentversion, :dependencies=>{}}
+						unless dependencies.nil?
+							dependencies.each do |k,v|
+								generate(pkg,version,k,v,mega)
+							end
 						end
 					end
 				else

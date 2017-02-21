@@ -1,5 +1,6 @@
 require 'npkg/dependency.rb'
 require 'npkg/download.rb'
+require 'npkg/exclusion.rb'
 require 'npkg/history.rb'
 require 'npkg/jsonobject.rb'
 require 'npkg/parent.rb'

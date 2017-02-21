@@ -11,7 +11,7 @@ Gem::Specification.new do |spec|
 
   spec.summary       = %q{CLI tool for bundle packaging NodeJS modules in openSUSE}
   spec.description   = %q{openSUSE packages NodeJS modules and their dependencies in bundles to avoid maintenance headaches. The key is a json file that emulates the result of npm shrinkwrap (without actually install npm). This is the client that creates such json files on the packager's workstation. the server side is nodejs-packaging that runs only on openSUSE Build Service as a build time requirement.}
-  spec.homepage      = "http://github.com/marguerite/npkg"
+  spec.homepage      = "http://github.com/marguerite/rubygem-npkg"
   spec.license       = "MIT"
 
   # Prevent pushing this gem to RubyGems.org. To allow pushes either set the 'allowed_push_host'
