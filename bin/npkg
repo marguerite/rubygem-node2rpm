@@ -1,0 +1,41 @@
+#!/usr/bin/env ruby
+
+$:.push(File.expand_path(File.dirname(__FILE__) + "/../lib"))
+
+require 'npkg'
+require 'json'
+require 'optparse'
+
+options = Hash.new
+parser = OptionParser.new do |opts|
+	opts.banner = "Usage: npkg [options]"
+	opts.separator ""
+	opts.separator "Specific Options:"
+
+	opts.on("-v [ver]", "Specify the mod version") do |ver|
+		options[:version] = ver
+	end
+
+	opts.on("-m [mod]", "Generate full dependency map for mod and version.") do |mod|
+		options[:module] = mod
+	end
+
+	opts.separator ""
+	opts.separator "Common Options:"
+	opts.on_tail("-h", "--help", "Show this message") do
+		puts opts
+		exit
+	end
+
+	opts.on_tail("--version", "Show version") do
+		puts NPKG::VERSION
+		exit
+	end
+end
+parser.parse!(ARGV)
+
+json = NPKG::Tree.new(options[:module],options[:version]).generate
+
+open(options[:module] + ".json","w") do |f|
+	f.write JSON.pretty_generate(json)
+end

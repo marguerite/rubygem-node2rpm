@@ -1,6 +1,6 @@
 module NPKG
 	class Tree
-		def initialize(pkg,version=nil)
+		def initialize(pkg,version)
 			@pkg = pkg
 			@json = NPKG::Download.get(@pkg)
 			@version = NPKG::History.new(@pkg).has?(version) ? version : NPKG::History.new(@pkg).last
@@ -13,8 +13,10 @@ module NPKG
 
 			if mega.empty?
 				mega[pkg] = {:version=>version, :parent=>parent, :parentversion=>parentversion, :dependencies=>{}}
-				dependencies.each do |k,v|
-					generate(pkg,version,k,v,mega)
+				unless dependencies.nil?
+					dependencies.each do |k,v|
+						generate(pkg,version,k,v,mega)
+					end
 				end
 			else
 				unless NPKG::JSONObject.new(mega).has?(pkg,version)	
