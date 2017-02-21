@@ -12,7 +12,6 @@ module NPKG
 			unless dependencies.nil? || dependencies.empty?
 				dependencies.each do |k,v|
 					versions = NPKG::History.new(k).all
-					p k,versions,v
 					dependencies[k] = Semver.maxSatisfying(versions,v)
 				end
 				dependencies
@@ -35,9 +34,3 @@ module NPKG
 		end
 	end
 end
-
-require './version.rb'
-require './download.rb'
-require './history.rb'
-
-#NPKG::Dependency.new("glob-stream").dependencies
