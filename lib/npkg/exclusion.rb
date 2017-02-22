@@ -1,3 +1,5 @@
+require 'node-semver'
+
 module NPKG
 	class Exclusion
 		def initialize(pkgs)
@@ -13,7 +15,7 @@ module NPKG
 						break
 					end
 				else
-					if k == pkg && v == version
+					if k == pkg && Semver.satisfies(version,v)
 						result = true
 						break
 					end
