@@ -28,12 +28,8 @@ parser = OptionParser.new do |opts|
 		end
 	end
 
-	opts.on("-p <path>", "The path to save the json file (Current directory by default)") do |f|
-		if f.nil?
-			options[:path] = "./"
-		else
-			options[:path] = f
-		end
+	opts.on("-p <path>", "The path to save the json file (Current directory by default)") do |path|
+		options[:path] = path
 	end
 
 	opts.separator ""
@@ -51,7 +47,7 @@ end
 parser.parse!(ARGV)
 
 json = NPKG::Tree.new(options[:module],options[:version]).generate(options[:exclusion])
-
-open(File.join(options[:path],options[:module],".json"),"w") do |f|
+options[:path] ||= "."
+open(File.join(options[:path],options[:module] + ".json"),"w") do |f|
 	f.write JSON.pretty_generate(json)
 end

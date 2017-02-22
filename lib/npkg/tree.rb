@@ -15,7 +15,7 @@ module NPKG
 				mega[pkg] = {:version=>version, :parent=>parent, :parentversion=>parentversion, :dependencies=>{}}
 				unless dependencies.nil?
 					dependencies.each do |k,v|
-						generate(pkg,version,k,v,mega)
+						generate(exclusion,pkg,version,k,v,mega)
 					end
 				end
 			else
@@ -27,7 +27,7 @@ module NPKG
 						walker[pkg] = {:version=>version, :parent=>parent, :parentversion=>parentversion, :dependencies=>{}}
 						unless dependencies.nil?
 							dependencies.each do |k,v|
-								generate(pkg,version,k,v,mega)
+								generate(exclusion,pkg,version,k,v,mega)
 							end
 						end
 					end
@@ -53,7 +53,7 @@ module NPKG
 
 					unless dependencies.nil?
 						dependencies.each do |k,v|
-							generate(pkg,version,k,v,mega)
+							generate(exclusion,pkg,version,k,v,mega)
 						end
 					end
 				end
