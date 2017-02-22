@@ -25,11 +25,25 @@ module NPKG
 					return json
 				end
 			else
-				r = Curl::Easy.new(@url)
-				r.perform
-				json = JSON.parse!(r.body_str)
-				open(@filename,'w:UTF-8') {|f| f.write JSON.pretty_generate(json)}
-				return json
+				if exist?
+					r = Curl::Easy.new(@url)
+					r.perform
+					json = JSON.parse!(r.body_str)
+					open(@filename,'w:UTF-8') {|f| f.write JSON.pretty_generate(json)}
+					return json
+				else
+					raise NPKG::Exception.new("No such node module. please check your spelling.")
+				end
+			end
+		end
+
+		def exist?
+			r = Curl::Easy.new(@url)
+			r.perform
+			if r.response_code == 404
+				false
+			else
+				true
 			end
 		end
 	end
