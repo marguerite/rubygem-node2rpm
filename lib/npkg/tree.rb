@@ -2,17 +2,18 @@ module NPKG
 	class Tree
 		def initialize(pkg,version)
 			@pkg = pkg
-			@json = NPKG::Download.get(@pkg)
 			@version = NPKG::History.new(@pkg).has?(version) ? version : NPKG::History.new(@pkg).last
 		end
 
 		def generate(exclusion={},parent=nil,parentversion=nil, pkg=@pkg,version=@version,mega={})
 			parent ||= "_root"
 			parentversion ||= "0.0.0"
-			dependencies = NPKG::Dependency.new(pkg).dependencies
+			dependencies = NPKG::Dependency.new(pkg,version).dependencies
+			license = NPKG::License.new(pkg,version).parse
+			source = NPKG::Source.new(pkg,version).parse
 
 			if mega.empty?
-				mega[pkg] = {:version=>version, :parent=>parent, :parentversion=>parentversion, :dependencies=>{}}
+				mega[pkg] = {:version=>version, :parent=>parent, :parentversion=>parentversion, :license=>license, :source=>source, :dependencies=>{}}
 				unless dependencies.nil?
 					dependencies.each do |k,v|
 						generate(exclusion,pkg,version,k,v,mega)
@@ -24,7 +25,7 @@ module NPKG
 					# we need to escape for some dependencies to allow package split.
 					unless NPKG::Exclusion.new(exclusion).exclude?(pkg,version)
 						walker = eval(NPKG::Parent.new(parent,parentversion,mega).walk("mega"))
-						walker[pkg] = {:version=>version, :parent=>parent, :parentversion=>parentversion, :dependencies=>{}}
+						walker[pkg] = {:version=>version, :parent=>parent, :parentversion=>parentversion, :license=>license, :source=>source, :dependencies=>{}}
 						unless dependencies.nil?
 							dependencies.each do |k,v|
 								generate(exclusion,pkg,version,k,v,mega)
@@ -48,7 +49,7 @@ module NPKG
 					# we need to insert the new one and delete the old one.
 					unless intersected.empty? # already been processed and moved.
 						eval(NPKG::Parent.new(oldparent,oldparentversion,mega).walk("mega")).delete(pkg)
-						eval(NPKG::Parent.new(newparent,newparentversion,mega).walk("mega"))[pkg] = {:version=>version, :parent=>newparent, :parentversion=>newparentversion,:dependencies=>{}}
+						eval(NPKG::Parent.new(newparent,newparentversion,mega).walk("mega"))[pkg] = {:version=>version, :parent=>newparent, :parentversion=>newparentversion, :license=>license, :source=>source, :dependencies=>{}}
 					end
 
 					unless dependencies.nil?

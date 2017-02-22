@@ -5,12 +5,12 @@ module NPKG
 		end
 
 		def all
-			@all = @json['time'].delete_if do |k,v|
-				/[0-9].*/.match(k).nil?
-			end
-		
-			@all.each do |k,v|
-				@all[k] = Time.parse(v)
+			@all = Hash.new
+
+			# can't use @json['time'] directly, eg is-extglob,
+			# some versions there doesn't exist in @json['versions']
+			@json['versions'].keys.each do |k|
+				@all[k] = Time.parse(@json['time'][k])
 			end
 
 			return @all.keys

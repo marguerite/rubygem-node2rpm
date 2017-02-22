@@ -2,7 +2,7 @@ require 'node-semver'
 
 module NPKG
 	class Dependency
-		def initialize(pkg,version=nil)
+		def initialize(pkg,version)
 			@json = NPKG::Download.get(pkg)
 			@version = NPKG::History.new(pkg).has?(version) ? version : NPKG::History.new(pkg).last
 		end
