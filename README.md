@@ -6,6 +6,7 @@ It will:
 
 * generate a dependency map in json format, containing all recursive dependencies for one node module.
 * output a RPM specfile.
+* download all the tarballs.
 
 #### Installation
 
