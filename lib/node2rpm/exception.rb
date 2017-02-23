@@ -1,4 +1,4 @@
-module NPKG
+module Node2RPM
 	class Exception < StandardError
 		def initialize(str)
 			puts str

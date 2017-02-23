@@ -1,6 +1,6 @@
 require 'node-semver'
 
-module NPKG
+module Node2RPM
 	class Exclusion
 		def initialize(pkgs)
 			@pkgs = pkgs

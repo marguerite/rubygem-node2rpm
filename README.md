@@ -1,15 +1,14 @@
-## NPKG (NodeJS Packaging Tool - Client)
+## Node2RPM (NodeJS Packaging Tool)
 
-openSUSE packages NodeJS modules and their dependencies in bundles to avoid maintenance headaches.
+Node2RPM packages a node module and its dependencies into RPM as a bundle to avoid maintenance headaches.
 
-The key is a json file that emulates the result of npm shrinkwrap (without actually install npm).
+It will:
 
-This is the client that creates such json files on the packager's workstation.
-
-The server side is nodejs-packaging that runs only on openSUSE Build Service as a build time requirement.
+* generate a dependency map in json format, containing all recursive dependencies for one node module.
+* output a RPM specfile.
 
 #### Installation
 
-`gem install npkg`
+`gem install node2rpm`
 
-or on openSUSE `sudo zypper in ruby%{ruby_ver}-rubygem-npkg`.
+or on openSUSE `sudo zypper in ruby%{ruby_ver}-rubygem-node2rpm`.

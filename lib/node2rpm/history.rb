@@ -1,7 +1,7 @@
-module NPKG
+module Node2RPM
 	class History
 		def initialize(pkg)
-			@json = NPKG::Download.get(pkg)
+			@json = Node2RPM::Download.new(pkg).get
 		end
 
 		def all

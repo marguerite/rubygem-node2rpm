@@ -1,17 +1,17 @@
 require 'node-semver'
 
-module NPKG
+module Node2RPM
 	class Dependency
 		def initialize(pkg,version)
-			@json = NPKG::Download.get(pkg)
-			@version = NPKG::History.new(pkg).has?(version) ? version : NPKG::History.new(pkg).last
+			@json = Node2RPM::Download.get(pkg)
+			@version = Node2RPM::History.new(pkg).has?(version) ? version : Node2RPM::History.new(pkg).last
 		end
 
 		def dependencies
 			dependencies = @json["versions"][@version]["dependencies"]
 			unless dependencies.nil? || dependencies.empty?
 				dependencies.each do |k,v|
-					versions = NPKG::History.new(k).all
+					versions = Node2RPM::History.new(k).all
 					dependencies[k] = Semver.maxSatisfying(versions,v)
 				end
 				dependencies
@@ -24,7 +24,7 @@ module NPKG
 			devDependencies = @json["versions"][@version]["devDependencies"]
 			unless devDependencies.nil? || devDependencies.empty?
 				devDependencies.each do |k,v|
-					versions = NPKG::History.new(k).all
+					versions = Node2RPM::History.new(k).all
 					devDependencies[k] = Semver.maxSatisfying(versions,v)
 				end
 				devDependencies

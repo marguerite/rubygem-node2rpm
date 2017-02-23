@@ -1,9 +1,9 @@
-module NPKG
+module Node2RPM
 	class Parent
 		def initialize(pkg,version,list)
 			@pkg = pkg
 			@version = version
-			@json = NPKG::JSONObject.new(list).parse
+			@json = Node2RPM::JSONObject.new(list).parse
 		end
 
 		def parents(pkg=@pkg,version=@version,arr=[])

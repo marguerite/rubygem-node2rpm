@@ -1,17 +1,17 @@
 # coding: utf-8
 lib = File.expand_path('../lib', __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require 'npkg/version'
+require 'node2rpm/version'
 
 Gem::Specification.new do |spec|
-  spec.name          = "npkg"
-  spec.version       = NPKG::VERSION
+  spec.name          = "node2rpm"
+  spec.version       = Node2RPM::VERSION
   spec.authors       = ["marguerite"]
   spec.email         = ["i@marguerite.su"]
 
-  spec.summary       = %q{CLI tool for bundle packaging NodeJS modules in openSUSE}
-  spec.description   = %q{openSUSE packages NodeJS modules and their dependencies in bundles to avoid maintenance headaches. The key is a json file that emulates the result of npm shrinkwrap (without actually install npm). This is the client that creates such json files on the packager's workstation. the server side is nodejs-packaging that runs only on openSUSE Build Service as a build time requirement.}
-  spec.homepage      = "http://github.com/marguerite/rubygem-npkg"
+  spec.summary       = %q{Command line tool for packaging a node module and their dependencies into RPM as bundle}
+  spec.description   = %q{Node2RPM packages a node module and its dependencies into RPM as bundle to avoid maintenance headaches.}
+  spec.homepage      = "http://github.com/marguerite/rubygem-node2rpm"
   spec.license       = "MIT"
 
   # Prevent pushing this gem to RubyGems.org. To allow pushes either set the 'allowed_push_host'

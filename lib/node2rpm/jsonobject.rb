@@ -1,4 +1,4 @@
-module NPKG
+module Node2RPM
 	class JSONObject
 		def initialize(list)
 			@list = list
