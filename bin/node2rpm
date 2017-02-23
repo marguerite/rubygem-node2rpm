@@ -70,7 +70,7 @@ version = Node2RPM.version(json)
 
 # write the json file
 options[:path] ||= "."
-open(File.join(options[:path],options[:name] + "-" + options[:version] + ".json"),"w") do |f|
+open(File.join(options[:path],options[:name] + "-" + version + ".json"),"w") do |f|
 	f.write JSON.pretty_generate(json)
 end
 
