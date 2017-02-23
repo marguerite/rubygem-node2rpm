@@ -11,6 +11,8 @@ require 'node2rpm/parent.rb'
 require 'node2rpm/tree.rb'
 require 'node2rpm/version.rb'
 
+require 'curb'
+
 module Node2RPM
 	def self.generate(pkg,ver,exclude)
 		Node2RPM::Tree.new(pkg,ver).generate(exclude)
@@ -45,7 +47,9 @@ module Node2RPM
 			url = REGISTRY + s.name + "/-/" + s.name + "-" + s.version + ".tgz"
 			tarball = File.join(path,s.name + "-" + s.version + ".tgz")
 			unless File.exist?(tarball)
-				exec("wget #{url} -O #{tarball}")
+				r = Curl::Easy.new(url)
+				r.perform
+				open(tarball,"w") {|f| f.write r.body_str}
 			end
 		end
 	end

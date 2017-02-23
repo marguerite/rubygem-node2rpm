@@ -66,21 +66,20 @@ end
 parser.parse!(ARGV)
 
 json = Node2RPM.generate(options[:name],options[:version],options[:exclusion])
+version = Node2RPM.version(json)
 
 # write the json file
 options[:path] ||= "."
-open(File.join(options[:path],options[:name] + ".json"),"w") do |f|
+open(File.join(options[:path],options[:name] + "-" + options[:version] + ".json"),"w") do |f|
 	f.write JSON.pretty_generate(json)
 end
 
 # download the sources
 sources = Node2RPM.sources(json)
-p sources
-#Node2RPM.sourcedownload(sources,options[:path])
+Node2RPM.sourcedownload(sources,options[:path])
 
 # write the specfile
-version = Node2RPM.version(json)
 description = Node2RPM::Description.new(options[:name],version).parse
 homepage = Node2RPM::Homepage.new(options[:name],version).parse
-spec = specfile.new(options[:name],version,Node2RPM.licenses(json),description,homepage,description,sources,"2017")
+spec = specfile.new(options[:name],version,Node2RPM.licenses(json),description,homepage,description,sources,Time.now.year)
 open(File.join(options[:path],"rubygem-" + options[:name] + ".spec"),"w") {|f| f.write erb.result(binding) }

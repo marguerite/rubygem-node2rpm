@@ -23,7 +23,8 @@ License:	<%= spec.licenses %>
 Summary:	<%= spec.summary %>
 Url:		<%= spec.homepage %>
 Group:		Development/Languages/NodeJS
-<% i = 0 ; for s in spec.sources -%>
+Source0:	<%= spec.name %>-<%= spec.version %>.json
+<% i = 1 ; for s in spec.sources -%>
 Source<%= i %>:	http://registry.npmjs.org/<%= s.name %>/-/<%= s.name %>-<%= s.version %>.tgz
 <% i += 1 ; end -%>
 BuildRequires:	nodejs6
