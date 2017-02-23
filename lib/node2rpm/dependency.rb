@@ -3,7 +3,7 @@ require 'node-semver'
 module Node2RPM
 	class Dependency
 		def initialize(pkg,version)
-			@json = Node2RPM::Download.get(pkg)
+			@json = Node2RPM::Download.new(pkg).get
 			@version = Node2RPM::History.new(pkg).has?(version) ? version : Node2RPM::History.new(pkg).last
 		end
 

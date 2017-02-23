@@ -2,18 +2,37 @@
 
 $:.push(File.expand_path(File.dirname(__FILE__) + "/../lib"))
 
-require 'npkg'
+require 'node2rpm'
 require 'json'
 require 'optparse'
+require 'erb'
+
+def distro
+	distro = ""
+	open("/etc/os-release") do |f|
+		f.each_line do |l|
+			if l.start_with?("ID=")
+				distro = l.strip.split("=")[1]
+			end
+		end
+	end
+	distro ||= "opensuse"
+	return distro
+end
 
 options = Hash.new
+os = distro
+template = open(File.join("../template/",os + ".spec.erb")).read
+erb = ERB.new(template,nil,"-")
+specfile = Struct.new(:name,:version,:licenses,:summary,:homepage,:description,:sources,:year)
+
 parser = OptionParser.new do |opts|
-	opts.banner = "Usage: npkg [options]"
+	opts.banner = "Usage: node2rpm -m <mod> -v <ver> -p <path> [options]"
 	opts.separator "Generate full dependency map for versioned/non-versioned node module."
 	opts.separator "Specific Options:"
 
 	opts.on("-m <mod>", "Specify the mod (Required)") do |mod|
-		options[:module] = mod
+		options[:name] = mod
 	end
 
 	opts.on("-v <ver>", "Specify the mod version (Latest by default)") do |ver|
@@ -28,7 +47,7 @@ parser = OptionParser.new do |opts|
 		end
 	end
 
-	opts.on("-p <path>", "The path to save the json file (Current directory by default)") do |path|
+	opts.on("-p <path>", "The path to save the output json and specfile (Current directory by default)") do |path|
 		options[:path] = path
 	end
 
@@ -40,14 +59,28 @@ parser = OptionParser.new do |opts|
 	end
 
 	opts.on_tail("--version", "Show version") do
-		puts NPKG::VERSION
+		puts Node2RPM::VERSION
 		exit
 	end
 end
 parser.parse!(ARGV)
 
-json = NPKG::Tree.new(options[:module],options[:version]).generate(options[:exclusion])
+json = Node2RPM.generate(options[:name],options[:version],options[:exclusion])
+
+# write the json file
 options[:path] ||= "."
-open(File.join(options[:path],options[:module] + ".json"),"w") do |f|
+open(File.join(options[:path],options[:name] + ".json"),"w") do |f|
 	f.write JSON.pretty_generate(json)
 end
+
+# download the sources
+sources = Node2RPM.sources(json)
+p sources
+#Node2RPM.sourcedownload(sources,options[:path])
+
+# write the specfile
+version = Node2RPM.version(json)
+description = Node2RPM::Description.new(options[:name],version).parse
+homepage = Node2RPM::Homepage.new(options[:name],version).parse
+spec = specfile.new(options[:name],version,Node2RPM.licenses(json),description,homepage,description,sources,"2017")
+open(File.join(options[:path],"rubygem-" + options[:name] + ".spec"),"w") {|f| f.write erb.result(binding) }
