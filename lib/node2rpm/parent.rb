@@ -18,9 +18,10 @@ module Node2RPM
 
     def walk(str)
       arr = parents
-      return "[\"#{@pkg}\"][:dependencies]" if arr.size <= 1
-      (1..(arr.size - 1)).each do |i|
-        str << "[\"#{arr[i]}\"][:dependencies]"
+      if arr.size > 1
+        (1..(arr.size - 1)).each do |i|
+          str << "[\"#{arr[i]}\"][:dependencies]"
+        end
       end
       str << "[\"#{@pkg}\"][:dependencies]"
       str

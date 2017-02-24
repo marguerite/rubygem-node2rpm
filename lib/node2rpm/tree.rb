@@ -56,8 +56,7 @@ module Node2RPM
         # occur the first time, so apply exclusion here.
         # we need to escape for some dependencies to allow package split.
         unless Node2RPM::Exclusion.new(exclusion).exclude?(pkg, version)
-          walker = eval(Node2RPM::Parent.new(parent, parentversion, mega)
-                        .walk('mega'))
+          walker = eval(Node2RPM::Parent.new(parent, parentversion, mega).walk('mega'))
           walker[pkg] = { version: version,
                           parent: parent,
                           parentversion: parentversion,

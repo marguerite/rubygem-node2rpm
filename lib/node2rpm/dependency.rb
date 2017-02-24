@@ -13,7 +13,7 @@ module Node2RPM
 
     def dependencies
       dependencies = @json['versions'][@version]['dependencies']
-      return unless dependencies.nil? || dependencies.empty?
+      return if dependencies.nil? || dependencies.empty?
       dependencies.each do |k, v|
         versions = Node2RPM::History.new(k).all
         dependencies[k] = Semver.maxSatisfying(versions, v)
@@ -23,7 +23,7 @@ module Node2RPM
 
     def dev_dependencies
       dev_dependencies = @json['versions'][@version]['devDependencies']
-      return unless dev_dependencies.nil? || dev_dependencies.empty?
+      return if dev_dependencies.nil? || dev_dependencies.empty?
       dev_dependencies.each do |k, v|
         versions = Node2RPM::History.new(k).all
         dev_dependencies[k] = Semver.maxSatisfying(versions, v)

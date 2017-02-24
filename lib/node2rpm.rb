@@ -42,7 +42,7 @@ module Node2RPM
       next if File.exist?(tarball)
       r = Curl::Easy.new(url)
       r.perform
-      open(tarball, 'w:UTF-8') { |f| f.write r.body_str }
+      open(tarball, 'w') { |f| f.write r.body_str }
     end
   end
 
