@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-$:.push(File.expand_path(File.dirname(__FILE__) + "/../lib"))
+$LOAD_PATH.push(File.expand_path(File.dirname(__FILE__) + '/../lib'))
 
 require 'node2rpm'
 require 'json'
@@ -8,78 +8,92 @@ require 'optparse'
 require 'erb'
 
 def distro
-	distro = ""
-	open("/etc/os-release") do |f|
-		f.each_line do |l|
-			if l.start_with?("ID=")
-				distro = l.strip.split("=")[1]
-			end
-		end
-	end
-	distro ||= "opensuse"
-	return distro
+  distro = ''
+  open('/etc/os-release') do |f|
+    f.each_line do |l|
+      distro = l.strip.split('=')[1] if l.start_with?('ID=')
+    end
+  end
+  distro ||= 'opensuse'
+  distro
 end
 
-options = Hash.new
+options = {}
 os = distro
-template = open(File.join("../template/",os + ".spec.erb")).read
-erb = ERB.new(template,nil,"-")
-specfile = Struct.new(:name,:version,:licenses,:summary,:homepage,:description,:sources,:year)
+template = open(File.join('../template/', os + '.spec.erb')).read
+erb = ERB.new(template, nil, '-')
+specfile = Struct.new(:name,
+                      :version,
+                      :licenses,
+                      :summary,
+                      :homepage,
+                      :description,
+                      :sources,
+                      :year)
 
 parser = OptionParser.new do |opts|
-	opts.banner = "Usage: node2rpm -m <mod> -v <ver> -p <path> [options]"
-	opts.separator "Generate full dependency map for versioned/non-versioned node module."
-	opts.separator "Specific Options:"
+  opts.banner = 'Usage: node2rpm -m <mod> -v <ver> -p <path> [options]'
+  opts.separator 'Generate a RPM from a node module.'
+  opts.separator 'Specific Options:'
 
-	opts.on("-m <mod>", "Specify the mod (Required)") do |mod|
-		options[:name] = mod
-	end
+  opts.on('-m <mod>', 'Specify the mod (Required)') do |mod|
+    options[:name] = mod
+  end
 
-	opts.on("-v <ver>", "Specify the mod version (Latest by default)") do |ver|
-		options[:version] = ver
-	end
+  opts.on('-v <ver>', 'Specify the mod version (Latest by default)') do |ver|
+    options[:version] = ver
+  end
 
-	opts.on("-r <dependency,range>", Array, "Exclude the versioned dependency from the dependency map (package split)") do |mod|
-		if options[:exclusion].nil?
-			options[:exclusion] = {mod[0]=>mod[1]}
-		else
-			options[:exclusion][mod[0]] = mod[1]
-		end
-	end
+  opts.on('-r <dependency,range>', Array,
+          'Exclude a versioned dependency (for package split)') do |mod|
+    if options[:exclusion].nil?
+      options[:exclusion] = { mod[0] => mod[1] }
+    else
+      options[:exclusion][mod[0]] = mod[1]
+    end
+  end
 
-	opts.on("-p <path>", "The path to save the output json and specfile (Current directory by default)") do |path|
-		options[:path] = path
-	end
+  opts.on('-p <path>',
+          'The output path (Current directory by default)') do |path|
+    options[:path] = path
+  end
 
-	opts.separator ""
-	opts.separator "Common Options:"
-	opts.on_tail("-h", "--help", "Show this message") do
-		puts opts
-		exit
-	end
+  opts.separator ''
+  opts.separator 'Common Options:'
+  opts.on_tail('-h', '--help', 'Show this message') do
+    puts opts
+    exit
+  end
 
-	opts.on_tail("--version", "Show version") do
-		puts Node2RPM::VERSION
-		exit
-	end
+  opts.on_tail('--version', 'Show version') do
+    puts Node2RPM::VERSION
+    exit
+  end
 end
 parser.parse!(ARGV)
 
-json = Node2RPM.generate(options[:name],options[:version],options[:exclusion])
+json = Node2RPM.generate(options[:name], options[:version], options[:exclusion])
 version = Node2RPM.version(json)
 
 # write the json file
-options[:path] ||= "."
-open(File.join(options[:path],options[:name] + "-" + version + ".json"),"w") do |f|
-	f.write JSON.pretty_generate(json)
-end
+options[:path] ||= '.'
+dest_json = File.join(options[:path], options[:name] + '-' + version + '.json')
+open(dest_json, 'w:UTF-8') { |f| f.write JSON.pretty_generate(json) }
 
 # download the sources
 sources = Node2RPM.sources(json)
-Node2RPM.sourcedownload(sources,options[:path])
+Node2RPM.sourcedownload(sources, options[:path])
 
 # write the specfile
-description = Node2RPM::Description.new(options[:name],version).parse
-homepage = Node2RPM::Homepage.new(options[:name],version).parse
-spec = specfile.new(options[:name],version,Node2RPM.licenses(json),description,homepage,description,sources,Time.now.year)
-open(File.join(options[:path],"rubygem-" + options[:name] + ".spec"),"w") {|f| f.write erb.result(binding) }
+description = Node2RPM::Description.new(options[:name], version).parse
+homepage = Node2RPM::Homepage.new(options[:name], version).parse
+spec = specfile.new(options[:name],
+                    version,
+                    Node2RPM.licenses(json),
+                    description,
+                    homepage,
+                    description,
+                    sources,
+                    Time.now.year)
+dest_specfile = File.join(options[:path], 'nodejs-' + options[:name] + '.spec')
+open(dest_specfile, 'w:UTF-8') { |f| f.write erb.result(binding) }

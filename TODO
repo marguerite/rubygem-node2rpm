@@ -4,4 +4,5 @@
 * support building the C node codes.
 * port the scripts that nodejs-packaging has here.
 * support nsp security check for the bundle.
-* consider to support the grunt auto tasks 
+* consider to support the grunt auto tasks
+* rspec unit tests

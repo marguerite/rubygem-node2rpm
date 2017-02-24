@@ -14,68 +14,61 @@ require 'node2rpm/version.rb'
 require 'curb'
 
 module Node2RPM
-	def self.generate(pkg,ver,exclude)
-		Node2RPM::Tree.new(pkg,ver).generate(exclude)
-	end
+  def self.generate(pkg, ver, exclude)
+    Node2RPM::Tree.new(pkg, ver).generate(exclude)
+  end
 
-	def self.name(json)
-		# return the node module's name
-		json.keys[0]
-	end
+  def self.version(json)
+    # return the node module's version
+    json.values[0][:version]
+  end
 
-	def self.version(json)
-		# return the node module's version
-		json.values[0][:version]
-	end
+  def self.sources(json, source = [])
+    sourceobj = Struct.new(:name, :version)
 
-	def self.sources(json,source=[])
-		sourceobj = Struct.new(:name,:version)
+    json.each do |k, v|
+      source << sourceobj.new(k, v[:version])
+      v[:dependencies].empty? || sources(v[:dependencies], source)
+    end
 
-		json.each do |k,v|
-			source << sourceobj.new(k,v[:version])
-			unless v[:dependencies].empty?
-				sources(v[:dependencies],source)
-			end
-		end
+    source
+  end
 
-		return source
-	end
+  def self.sourcedownload(sources, path = nil)
+    path ||= './'
+    sources.each do |s|
+      url = REGISTRY + s.name + '/-/' + s.name + '-' + s.version + '.tgz'
+      tarball = File.join(path, s.name + '-' + s.version + '.tgz')
+      next if File.exist?(tarball)
+      r = Curl::Easy.new(url)
+      r.perform
+      open(tarball, 'w:UTF-8') { |f| f.write r.body_str }
+    end
+  end
 
-	def self.sourcedownload(sources,path=nil)
-		path ||= "./"
-		sources.each do |s|
-			url = REGISTRY + s.name + "/-/" + s.name + "-" + s.version + ".tgz"
-			tarball = File.join(path,s.name + "-" + s.version + ".tgz")
-			unless File.exist?(tarball)
-				r = Curl::Easy.new(url)
-				r.perform
-				open(tarball,"w") {|f| f.write r.body_str}
-			end
-		end
-	end
+  def self.licenses(json, license = '')
+    json.each do |k, v|
+      if v[:license].nil?
+        puts "Warning: #{k} has no license" \
+             ', please confirm by visiting' \
+              " https://www.npmjs.org/package/#{k}" \
+             ' and add it later to the specfile.'
+      else
+        if v[:license] == 'BSD'
+          puts "Warning: #{k}'s license is BSD" \
+               ', please verify the clauses by visiting' \
+                " https://www.npmjs.org/package/#{k}."
+        end
 
-	def self.licenses(json,license="")
-		json.each_with_index do |(k, v), i|
-			if v[:license].nil?
-				puts "Warning: #{k} has no license, please confirm by visiting https://www.npmjs.org/package/#{k} and add it later to the specfile."
-			else
-				if v[:license] == "BSD"
-					puts "Warning: #{k}'s license is BSD, please verify the clauses by visiting https://www.npmjs.org/package/#{k}."
-				end
+        if license.empty?
+          license << v[:license]
+        else
+          license.index(v[:license]) || license << "\sAND\s" + v[:license]
+        end
+        v[:dependencies].empty? || licenses(v[:dependencies], license)
+      end
+    end
 
-				if license.empty?
-					license << v[:license]
-				else
-					unless license.index(v[:license])
-						license << "\sAND\s" + v[:license]
-					end
-				end	
-				unless v[:dependencies].empty?
-					licenses(v[:dependencies],license)
-				end
-			end
-		end
-
-		return license
-	end
+    license
+  end
 end
