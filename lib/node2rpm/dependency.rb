@@ -16,7 +16,7 @@ module Node2RPM
       return if dependencies.nil? || dependencies.empty?
       dependencies.each do |k, v|
         versions = Node2RPM::History.new(k).all
-        dependencies[k] = Semver.maxSatisfying(versions, v)
+        dependencies[k] = Semver.max_satisfying(versions, v)
       end
       dependencies
     end
@@ -26,7 +26,7 @@ module Node2RPM
       return if dev_dependencies.nil? || dev_dependencies.empty?
       dev_dependencies.each do |k, v|
         versions = Node2RPM::History.new(k).all
-        dev_dependencies[k] = Semver.maxSatisfying(versions, v)
+        dev_dependencies[k] = Semver.max_satisfying(versions, v)
       end
       dev_dependencies
     end
