@@ -2,7 +2,7 @@ module Node2RPM
   class Tree
     def initialize(pkg, version)
       @pkg = pkg
-      @version = if Node2RPM::History.new(@pkg).has?(version)
+      @version = if Node2RPM::History.new(@pkg).include?(version)
                    version
                  else
                    Node2RPM::History.new(@pkg).last
@@ -26,7 +26,7 @@ module Node2RPM
             generate(exclusion, pkg, version, k, v, mega)
           end
         end
-      elsif Node2RPM::JSONObject.new(mega).has?(pkg, version)
+      elsif Node2RPM::JSONObject.new(mega).include?(pkg, version)
         # This indicates we have at least two modules rely on the same
         # dependency. usually we keep the shortest path, so we put
         # this dependency under the same parent of those two modules.

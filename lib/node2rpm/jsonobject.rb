@@ -29,7 +29,7 @@ module Node2RPM
       json
     end
 
-    def has?(pkg, version)
+    def include?(pkg, version)
       result = false
       json = parse
       json.each do |j|

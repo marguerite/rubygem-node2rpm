@@ -23,7 +23,7 @@ module Node2RPM
       @all.key(last)
     end
 
-    def has?(version)
+    def include?(version)
       all
       @all.keys.include?(version) ? true : false
     end
