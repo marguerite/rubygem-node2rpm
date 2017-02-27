@@ -1,7 +1,3 @@
 module Node2RPM
-  class Exception < StandardError
-    def initialize(str)
-      puts str
-    end
-  end
+  Exception = Class.new(StandardError)
 end
