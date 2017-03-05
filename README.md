@@ -1,15 +1,15 @@
-## Node2RPM (NodeJS Packaging Tool)
+Node2RPM
 
-Node2RPM packages a node module and its dependencies into RPM as a bundle to avoid maintenance headaches.
+=====
+
+[![Code Climate](https://codeclimate.com/github/marguerite/rubygem-node2rpm/badges/gpa.svg)](https://codeclimate.com/github/marguerite/rubygem-node2rpm)
+
+Node2RPM packages a node module and all the recursive dependencies into RPM as a bundle to avoid maintenance headaches.
 
 It will:
 
 * generate a dependency map in json format, containing all recursive dependencies for one node module.
-* output a RPM specfile.
+* output/update a RPM specfile.
 * download all the tarballs.
 
-#### Installation
-
-`gem install node2rpm`
-
-or on openSUSE `sudo zypper in ruby%{ruby_ver}-rubygem-node2rpm`.
+It's distributed as a standard rubygem and licensed under MIT.
