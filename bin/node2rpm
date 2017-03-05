@@ -103,14 +103,13 @@ if File.exist?(dest_specfile)
   # replace source, licenses and version
   sourceobj = RPMSpec::Source.new(f)
   oldsource = sourceobj.sources
-  p f, sourceobj.inspect(oldsource)
   new_specfile = f.sub(sourceobj.inspect(oldsource), form_source(sources))
                   .sub(/License:.*?\n/m, "License:\t#{Node2RPM.licenses(json)}\n")
                   .sub(/Version:.*?\n/m, "Version:\t#{version}\n")
   open(dest_specfile, 'w:UTF-8') { |f1| f1.write new_specfile }
 else
-  description = Node2RPM::Description.new(options[:name], version).parse
-  homepage = Node2RPM::Homepage.new(options[:name], version).parse
+  description = Node2RPM::Attribute.create("description").parse(options[:name], version)
+  homepage = Node2RPM::Attribute.create("homepage").parse(options[:name], version)
   spec = specfile.new(options[:name],
                       version,
                       Node2RPM.licenses(json),

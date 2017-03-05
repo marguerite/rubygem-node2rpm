@@ -13,7 +13,7 @@ module Node2RPM
       parent ||= '_root'
       parentversion ||= '0.0.0'
       dependencies = Node2RPM::Dependency.new(pkg, version).dependencies
-      license = Node2RPM::License.new(pkg, version).parse
+      license = Node2RPM::Attribute.new('license').parse(pkg, version)
 
       if mega.empty?
         mega[pkg] = { version: version,
