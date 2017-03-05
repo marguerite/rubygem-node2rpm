@@ -16,21 +16,21 @@
 #
 
 %define mod_name <%= spec.name %>
-Name:           nodejs-<%= spec.name %>
-Version:	<%= spec.version %>
-Release:	0
-License:	<%= spec.licenses %>
-Summary:	<%= spec.summary %>
-Url:		<%= spec.homepage %>
-Group:		Development/Languages/NodeJS
+Name: nodejs-<%= spec.name %>
+Version:  <%= spec.version %>
+Release:  0
+License:  <%= spec.licenses %>
+Summary:  <%= spec.summary %>
+Url:  <%= spec.homepage %>
+Group:  Development/Languages/NodeJS
 Source0:	<%= spec.name %>-<%= spec.version %>.json
 <% i = 1 ; for s in spec.sources -%>
 Source<%= i %>:	http://registry.npmjs.org/<%= s.name %>/-/<%= s.name %>-<%= s.version %>.tgz
 <% i += 1 ; end -%>
-BuildRequires:	nodejs6
-BuildRequires:	nodejs-rpm-macros
-Requires:	nodejs6
-BuildRoot:      %{_tmppath}/%{name}-%{version}-build
+BuildRequires:  nodejs6
+BuildRequires:  nodejs-rpm-macros
+Requires: nodejs6
+BuildRoot:  %{_tmppath}/%{name}-%{version}-build
 
 %description
 <%= spec.description %>

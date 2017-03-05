@@ -3,6 +3,7 @@
 $LOAD_PATH.push(File.expand_path(File.dirname(__FILE__) + '/../lib'))
 
 require 'node2rpm'
+require 'rpmspec'
 require 'json'
 require 'optparse'
 require 'erb'
@@ -16,6 +17,16 @@ def distro
   end
   distro ||= 'opensuse'
   distro
+end
+
+def form_source(arr)
+  str = ''
+  i = 0
+  arr.each do |s|
+    str << "Source#{i}:\thttp://registry.npmjs.org/#{s.name}/-/#{s.name}-#{s.version}.tgz\n"
+    i += 1
+  end
+  str
 end
 
 options = {}
@@ -82,18 +93,31 @@ open(dest_json, 'w:UTF-8') { |f| f.write JSON.pretty_generate(json) }
 
 # download the sources
 sources = Node2RPM.sources(json)
-Node2RPM.sourcedownload(sources, options[:path])
+# Node2RPM.sourcedownload(sources, options[:path])
 
 # write the specfile
-description = Node2RPM::Description.new(options[:name], version).parse
-homepage = Node2RPM::Homepage.new(options[:name], version).parse
-spec = specfile.new(options[:name],
-                    version,
-                    Node2RPM.licenses(json),
-                    description,
-                    homepage,
-                    description,
-                    sources,
-                    Time.now.year)
 dest_specfile = File.join(options[:path], 'nodejs-' + options[:name] + '.spec')
-open(dest_specfile, 'w:UTF-8') { |f| f.write erb.result(binding) }
+
+if File.exist?(dest_specfile)
+  f = open(dest_specfile).read
+  # replace source, licenses and version
+  sourceobj = RPMSpec::Source.new(f)
+  oldsource = sourceobj.sources
+  p f, sourceobj.inspect(oldsource)
+  new_specfile = f.sub(sourceobj.inspect(oldsource), form_source(sources))
+                  .sub(/License:.*?\n/m, "License:\t#{Node2RPM.licenses(json)}\n")
+                  .sub(/Version:.*?\n/m, "Version:\t#{version}\n")
+  open(dest_specfile, 'w:UTF-8') { |f1| f1.write new_specfile }
+else
+  description = Node2RPM::Description.new(options[:name], version).parse
+  homepage = Node2RPM::Homepage.new(options[:name], version).parse
+  spec = specfile.new(options[:name],
+                      version,
+                      Node2RPM.licenses(json),
+                      description,
+                      homepage,
+                      description,
+                      sources,
+                      Time.now.year)
+  open(dest_specfile, 'w:UTF-8') { |f1| f1.write erb.result(binding) }
+end

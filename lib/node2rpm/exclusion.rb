@@ -13,13 +13,11 @@ module Node2RPM
           if version.nil?
             if k == pkg
               result = true
-	      break
-	    end
-          else
-            if k == pkg && Semver.satisfies(version, v)
-              result = true
               break
             end
+          elsif k == pkg && Semver.satisfies(version, v)
+            result = true
+            break
           end
         end
       end
