@@ -16,15 +16,14 @@ module Node2RPM
       arr.reverse
     end
 
-    def walk(str)
+    def walk(hash)
       arr = parents
       if arr.size > 1
         (1..(arr.size - 1)).each do |i|
-          str << "[\"#{arr[i]}\"][:dependencies]"
+          hash = hash[arr[i]][:dependencies]
         end
       end
-      str << "[\"#{@pkg}\"][:dependencies]"
-      str
+      hash[@pkg][:dependencies]
     end
   end
 end

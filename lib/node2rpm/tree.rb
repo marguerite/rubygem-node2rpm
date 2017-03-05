@@ -38,14 +38,14 @@ module Node2RPM
         intersected = intersect(parents_old, parents_new)
 
         oldparent = parents_old[-1]
-        oldparentversion = eval(get_version('mega', parents_old))
+        oldparentversion = get_version(parents_old, mega)
         newparent = intersected[-1]
-        newparentversion = eval(get_version('mega', intersected))
+        newparentversion = get_version(intersected, mega)
 
         # we need to insert the new one and delete the old one.
         unless intersected.empty? # already been processed and moved.
-          eval(Node2RPM::Parent.new(oldparent, oldparentversion, mega).walk('mega')).delete(pkg)
-          eval(Node2RPM::Parent.new(newparent, newparentversion, mega).walk('mega'))[pkg] = { version: version, parent: newparent, parentversion: newparentversion, license: license, dependencies: {} }
+          Node2RPM::Parent.new(oldparent, oldparentversion, mega).walk(mega).delete(pkg)
+          Node2RPM::Parent.new(newparent, newparentversion, mega).walk(mega)[pkg] = { version: version, parent: newparent, parentversion: newparentversion, license: license, dependencies: {} }
         end
 
         unless dependencies.nil?
@@ -57,7 +57,7 @@ module Node2RPM
         # occur the first time, so apply exclusion here.
         # we need to escape for some dependencies to allow package split.
         unless Node2RPM::Exclusion.new(exclusion).exclude?(pkg, version)
-          walker = eval(Node2RPM::Parent.new(parent, parentversion, mega).walk('mega'))
+          walker = Node2RPM::Parent.new(parent, parentversion, mega).walk(mega)
           walker[pkg] = { version: version,
                           parent: parent,
                           parentversion: parentversion,
@@ -76,16 +76,15 @@ module Node2RPM
 
     private
 
-    def get_version(str, arr)
+    def get_version(arr, hash)
       return if arr.size <= 1
       (1..(arr.size - 1)).each do |i|
-        str << if i == arr.size - 1
-                 "[\"#{arr[i]}\"][:version]"
-               else
-                 "[\"#{arr[i]}\"][:dependencies]"
-               end
+        if i == arr.size - 1
+          return hash[arr[i]][:version]
+        else
+          hash = hash[arr[i]][:dependencies]
+        end
       end
-      str
     end
 
     def intersect(arr1, arr2)

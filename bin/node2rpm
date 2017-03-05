@@ -108,8 +108,8 @@ if File.exist?(dest_specfile)
                   .sub(/Version:.*?\n/m, "Version:\t#{version}\n")
   open(dest_specfile, 'w:UTF-8') { |f1| f1.write new_specfile }
 else
-  description = Node2RPM::Attribute.create("description").new.parse(options[:name], version)
-  homepage = Node2RPM::Attribute.create("homepage").new.parse(options[:name], version)
+  description = Node2RPM::Attribute.create('description').new.parse(options[:name], version)
+  homepage = Node2RPM::Attribute.create('homepage').new.parse(options[:name], version)
   spec = specfile.new(options[:name],
                       version,
                       Node2RPM.licenses(json),
