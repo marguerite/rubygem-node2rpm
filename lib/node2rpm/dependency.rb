@@ -12,23 +12,23 @@ module Node2RPM
     end
 
     def dependencies
-      dependencies = @json['versions'][@version]['dependencies']
-      return if dependencies.nil? || dependencies.empty?
-      dependencies.each do |k, v|
-        versions = Node2RPM::History.new(k).all
-        dependencies[k] = Semver.max_satisfying(versions, v)
-      end
-      dependencies
+      get_dependency('dependencies')
     end
 
     def dev_dependencies
-      dev_dependencies = @json['versions'][@version]['devDependencies']
-      return if dev_dependencies.nil? || dev_dependencies.empty?
-      dev_dependencies.each do |k, v|
+      get_dependency('devDependencies')
+    end
+
+    private
+
+    def get_dependency(type)
+      arr = @json['versions'][@version][type]
+      return if arr.nil? || arr.empty?
+      arr.each do |k, v|
         versions = Node2RPM::History.new(k).all
-        dev_dependencies[k] = Semver.max_satisfying(versions, v)
+        arr[k] = Semver.max_satisfying(versions, v)
       end
-      dev_dependencies
+      arr
     end
   end
 end
