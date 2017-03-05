@@ -7,13 +7,14 @@ module Node2RPM
                  else
                    Node2RPM::History.new(@pkg).last
                  end
+      @license = Node2RPM::Attribute.create('license')
     end
 
     def generate(exclusion = {}, parent = nil, parentversion = nil, pkg = @pkg, version = @version, mega = {})
       parent ||= '_root'
       parentversion ||= '0.0.0'
       dependencies = Node2RPM::Dependency.new(pkg, version).dependencies
-      license = Node2RPM::Attribute.new('license').parse(pkg, version)
+      license = @license.new.parse(pkg, version)
 
       if mega.empty?
         mega[pkg] = { version: version,

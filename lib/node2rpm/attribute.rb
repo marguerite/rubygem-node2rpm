@@ -3,7 +3,6 @@ module Node2RPM
     def self.create(name)
       Object.const_set(name.capitalize,
                        Class.new do
-                         attr_accessor :parse
                          define_method :parse do |pkg, ver|
                            json = Node2RPM::Download.new(pkg).get
                            version = if Node2RPM::History.new(pkg).include?(ver)
