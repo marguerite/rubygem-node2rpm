@@ -93,7 +93,7 @@ open(dest_json, 'w:UTF-8') { |f| f.write JSON.pretty_generate(json) }
 
 # download the sources
 sources = Node2RPM.sources(json)
-# Node2RPM.sourcedownload(sources, options[:path])
+Node2RPM.sourcedownload(sources, options[:path])
 
 # write the specfile
 dest_specfile = File.join(options[:path], 'nodejs-' + options[:name] + '.spec')
