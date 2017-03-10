@@ -5,6 +5,7 @@ module Node2RPM
   class Server
     def initialize(json = nil)
       @sourcedir = Node2RPM::System.sourcedir
+      @builddir = Node2RPM::System.builddir
       @buildroot = Node2RPM::System.buildroot
       @sitelib = Node2RPM::System.sitelib
       @dest_dir = File.join(@buildroot, @sitelib)
@@ -41,6 +42,30 @@ module Node2RPM
       end
       recursive_rename
       symlink
+    end
+
+    def build
+      builddirs = find_builddirs
+    end
+
+    def clean
+      clean_source_files
+      clean_empty_directories
+    end
+
+    def generate_filelist
+      open(File.join(@builddir, @pkg + '.list')) do |f|
+        Dir.glob(@buildroot + '/**/*') do |i|
+          if File.directory?(i)
+            next if f == File.join(@buildroot, '/usr') ||
+                    File.join(@buildroot, '/usr/lib') ||
+                    @dest_dir
+            f.write "%dir\s" + i.gsub(@buildroot, '') + "\n"
+          else
+            f.write i.gsub(@buildroot, '') + "\n"
+          end
+        end
+      end
     end
 
     private
@@ -140,9 +165,41 @@ module Node2RPM
         false
       end
     end
+
+    def find_builddirs
+      builddirs = []
+      Dir.glob(@buildroot + "/**/*") do |file|
+        next unless file =~ /\.(c|cc|cpp)$/
+        name = File.basename(file, File.extname(file))
+        path = File.split(file)[0].sub!(@buildroot, '')
+        builddirs << File.join(@buildroot + path, name)
+      end
+      builddirs.uniq
+    end
+
+    def clean_source_files
+      Dir.glob(@dest_dir + '/**/{*,.*}') do |file|
+        if File.basename(file) =~ /\.(c|h|cc|cpp|o|gyp|gypi)$
+                    | Makefile$ | ^\..*$ /x
+          puts "Cleaning #{file}..."
+          FileUtils.rm_rf file
+        end
+        FileUtils.rm_rf file if file =~ %r{build/Release/obj\.target}
+        fix_permissions(file)
+      end
+    end
+
+    def fix_permissions(file)
+      return unless File.file?(file) && File.executable?(file) && file =~ %r{/bin/}
+      puts "Fixing permission #{file}"
+      IO.popen("chmod -x #{file}").close
+    end
+
+    def clean_empty_directories
+      Dir.glob(@dest_dir + '/**/{*,.*}')
+         .select! { |d| File.directory?(d) }
+         .select { |d| (Dir.entries(d) - %w(. ..)).empty? }
+         .each { |d| Dir.rmdir d }
+    end
   end
 end
-require './exclusion.rb'
-require './system.rb'
-
-Node2RPM::Server.new.symlink

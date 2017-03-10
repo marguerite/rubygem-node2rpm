@@ -1,0 +1,20 @@
+#!/usr/bin/env ruby
+
+$LOAD_PATH.push(File.expand_path(File.dirname(__FILE__) + '/../lib'))
+
+require 'node2rpm'
+
+case ARGV[0].sub!('--', '')
+when 'prep'
+  Node2RPM::Server.new.prep
+when 'mkdir'
+  Node2RPM::Server.new.mkdir
+when 'copy'
+  Node2RPM::Server.new.copy
+when 'build'
+  Node2RPM::Server.new.build
+when 'clean'
+  Node2RPM::Server.new.clean
+when 'filelist'
+  Node2RPM::Server.new.generate_filelist
+end
