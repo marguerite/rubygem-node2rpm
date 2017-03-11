@@ -3,11 +3,12 @@ require 'node-semver'
 module Node2RPM
   class Dependency
     def initialize(pkg, version)
-      @json = Node2RPM::Download.new(pkg).get
-      @version = if Node2RPM::History.new(pkg).include?(version)
+      @pkg = pkg
+      @json = Node2RPM::Download.new(@pkg).get
+      @version = if Node2RPM::History.new(@pkg).include?(version)
                    version
                  else
-                   Node2RPM::History.new(pkg).last
+                   Node2RPM::History.new(@pkg).last
                  end
     end
 
@@ -25,8 +26,14 @@ module Node2RPM
       arr = @json['versions'][@version][type]
       return if arr.nil? || arr.empty?
       arr.each do |k, v|
-        versions = Node2RPM::History.new(k).all
-        arr[k] = Semver.max_satisfying(versions, v)
+        range = Node2RPM::History.new(k).all
+        version = Semver.max_satisfying(range, v)
+        if version.nil?
+          raise Node2RPM::Exception, "#{@pkg}'s dependency #{k} " \
+                "has nil-matched version! Raw version range: #{v}. " \
+                "All available versions: #{range}. " \ 
+        end
+        arr[k] = version
       end
       arr
     end
