@@ -1,13 +1,8 @@
-require 'node2rpm/attribute.rb'
-require 'node2rpm/dependency.rb'
-require 'node2rpm/download.rb'
-require 'node2rpm/exception.rb'
-require 'node2rpm/exclusion.rb'
-require 'node2rpm/history.rb'
-require 'node2rpm/jsonobject.rb'
-require 'node2rpm/parent.rb'
-require 'node2rpm/tree.rb'
-require 'node2rpm/version.rb'
+dir = File.basename(__FILE__, File.extname(__FILE__))
+path = File.join(File.dirname(File.expand_path(__FILE__)), dir)
+Dir.glob(path + '/*').each do |i|
+  require dir + '/' + File.basename(i) if File.basename(i).end_with?('.rb')
+end
 
 require 'curb'
 
