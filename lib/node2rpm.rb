@@ -30,12 +30,14 @@ module Node2RPM
   def self.sourcedownload(sources, path = nil)
     path ||= './'
     sources.each do |s|
-      name = if s.name =~ %r{^(@[^/%]+)/(.*)$}
-               Regexp.last_match(1) + '%2F' + Regexp.last_match(2)
-             else
-               s.name
-             end
-      url = REGISTRY + name + '/-/' + name + '-' + s.version + '.tgz'
+      name, url = if s.name =~ %r{^(@[^/%]+)/(.*)$}
+                    [Regexp.last_match(1) + '%2F' + Regexp.last_match(2),
+                     REGISTRY + s.name + '/-/' + Regexp.last_match(2) \
+                     + '-' + s.version + '.tgz']
+                  else
+                    [s.name,
+                     REGISTRY + s.name + '/-/' + s.name + '-' + s.version + '.tgz']
+                  end
       tarball = File.join(path, name + '-' + s.version + '.tgz')
       next if File.exist?(tarball)
       r = Curl::Easy.new(url)
@@ -44,30 +46,7 @@ module Node2RPM
     end
   end
 
-  def self.licenses(json, license = '')
-    json.each do |k, v|
-      if v[:license].nil?
-        puts "Warning: #{k} has no license" \
-             ', please confirm by visiting' \
-              " https://www.npmjs.org/package/#{k}" \
-             ' and add it later to the specfile.'
-      else
-        if v[:license] == 'BSD'
-          puts "Warning: #{k}'s license is BSD" \
-               ', please verify the clauses by visiting' \
-                " https://www.npmjs.org/package/#{k}."
-        end
-
-        lic = v[:license].instance_of(Hash) ? v[:license]['type'] : v[:license]
-        if license.empty?
-          license << lic
-        else
-          license.index(lic) || license << "\sAND\s" + lic
-        end
-        v[:dependencies].empty? || licenses(v[:dependencies], license)
-      end
-    end
-
-    license
+  def self.licenses(json)
+    Node2RPM::Licenses.new(json).parse
   end
 end

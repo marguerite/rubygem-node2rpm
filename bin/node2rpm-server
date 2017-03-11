@@ -4,7 +4,7 @@ $LOAD_PATH.push(File.expand_path(File.dirname(__FILE__) + '/../lib'))
 
 require 'node2rpm'
 
-case ARGV[0].sub!('--', '')
+case ARGV[0].sub('--', '')
 when 'prep'
   Node2RPM::Server.new.prep
 when 'mkdir'
