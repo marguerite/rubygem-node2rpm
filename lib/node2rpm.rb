@@ -30,8 +30,13 @@ module Node2RPM
   def self.sourcedownload(sources, path = nil)
     path ||= './'
     sources.each do |s|
-      url = REGISTRY + s.name + '/-/' + s.name + '-' + s.version + '.tgz'
-      tarball = File.join(path, s.name + '-' + s.version + '.tgz')
+      name = if s.name =~ %r{^(@[^/%]+)/(.*)$}
+               Regexp.last_match(1) + '%2F' + Regexp.last_match(2)
+             else
+               s.name
+             end
+      url = REGISTRY + name + '/-/' + name + '-' + s.version + '.tgz'
+      tarball = File.join(path, name + '-' + s.version + '.tgz')
       next if File.exist?(tarball)
       r = Curl::Easy.new(url)
       r.perform
@@ -53,10 +58,11 @@ module Node2RPM
                 " https://www.npmjs.org/package/#{k}."
         end
 
+        lic = v[:license].instance_of(Hash) ? v[:license]['type'] : v[:license]
         if license.empty?
-          license << v[:license]
+          license << lic
         else
-          license.index(v[:license]) || license << "\sAND\s" + v[:license]
+          license.index(lic) || license << "\sAND\s" + lic
         end
         v[:dependencies].empty? || licenses(v[:dependencies], license)
       end
