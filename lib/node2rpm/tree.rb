@@ -10,9 +10,15 @@ module Node2RPM
       @license = Node2RPM::Attribute.create('license')
     end
 
-    def generate(exclusion = {}, parent = nil, parentversion = nil, pkg = @pkg, version = @version, mega = {})
-      parent ||= '_root'
-      parentversion ||= '0.0.0'
+    def generate(options)
+      # extract options hash
+      parent = options.fetch(:parent, '_root')
+      parentversion = options.fetch(:parentversion, '0.0.0')
+      exclusion = options.fetch(:exclusion, {})
+      pkg = options.fetch(:pkg, @pkg)
+      version = options.fetch(:version, @version)
+      mega = options.fetch(:mega, {})
+
       dependencies = Node2RPM::Dependency.new(pkg, version).dependencies
       license = @license.new.parse(pkg, version)
 
@@ -24,7 +30,9 @@ module Node2RPM
                       dependencies: {} }
         unless dependencies.nil?
           dependencies.each do |k, v|
-            generate(exclusion, pkg, version, k, v, mega)
+            generate(pkg: k, version: v,
+                     exclusion: exclusion, parent: pkg,
+                     parentversion: version, mega: mega)
           end
         end
       elsif Node2RPM::JSONObject.new(mega).include?(pkg, version)
@@ -50,7 +58,9 @@ module Node2RPM
 
         unless dependencies.nil?
           dependencies.each do |k, v|
-            generate(exclusion, pkg, version, k, v, mega)
+            generate(pkg: k, version: v,
+                     exclusion: exclusion, parent: pkg,
+                     parentversion: version, mega: mega)
           end
         end
       else
@@ -65,7 +75,9 @@ module Node2RPM
                           dependencies: {} }
           unless dependencies.nil?
             dependencies.each do |k, v|
-              generate(exclusion, pkg, version, k, v, mega)
+              generate(pkg: k, version: v,
+                       exclusion: exclusion, parent: pkg,
+                       parentversion: version, mega: mega)
             end
           end
         end
@@ -79,11 +91,8 @@ module Node2RPM
     def get_version(arr, hash)
       return if arr.size <= 1
       (1..(arr.size - 1)).each do |i|
-        if i == arr.size - 1
-          return hash[arr[i]][:version]
-        else
-          hash = hash[arr[i]][:dependencies]
-        end
+        return hash[arr[i]][:version] if i == arr.size - 1
+        hash = hash[arr[i]][:dependencies]
       end
     end
 

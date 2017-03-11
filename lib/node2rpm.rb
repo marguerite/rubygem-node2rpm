@@ -8,7 +8,7 @@ require 'curb'
 
 module Node2RPM
   def self.generate(pkg, ver, exclude)
-    Node2RPM::Tree.new(pkg, ver).generate(exclude)
+    Node2RPM::Tree.new(pkg, ver).generate(exclusion: exclude)
   end
 
   def self.version(json)
