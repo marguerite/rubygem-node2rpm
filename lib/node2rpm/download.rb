@@ -6,17 +6,16 @@ module Node2RPM
   class Download
     def initialize(pkg)
       if pkg =~ %r{^(@[^/%]+)/(.*)$}
-        pkg = Regexp.last_match(1) + '%2F' + \
-              Regexp.last_match(2)
+        pkg = Regexp.last_match(1) + '%2F' + Regexp.last_match(2)
       end
       @url = REGISTRY + pkg
       @uri = URI.parse(@url)
-      @filename = File.join('/tmp', %r{.*\/(.*)}.match(@uri.path)[1])
+      @filename = File.join('/tmp/node2rpm', %r{.*\/(.*)}.match(@uri.path)[1])
     end
 
     def get
-      # if the json file exists, then return the json
-      # else download the json file and return the json
+      # download the json file unless it exists and is
+      # with a week, then return the json.
       # @param [String]
       # @return [Hash]
 
