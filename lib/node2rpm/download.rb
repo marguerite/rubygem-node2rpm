@@ -5,6 +5,10 @@ require 'json'
 module Node2RPM
   class Download
     def initialize(pkg)
+      if pkg =~ %r{^(@[^/%]+)/(.*)$}
+        pkg = Regexp.last_match(1) + '%2F' + \
+              Regexp.last_match(2)
+      end
       @url = REGISTRY + pkg
       @uri = URI.parse(@url)
       @filename = File.join('/tmp', %r{.*\/(.*)}.match(@uri.path)[1])
@@ -25,8 +29,9 @@ module Node2RPM
         open(@filename, 'w:UTF-8') { |f| f.write JSON.pretty_generate(json) }
         json
       else
-        raise Node2RPM::Exception, 'No such node module.' \
-	        'please check your spelling.'
+        raise Node2RPM::Exception, 'No such node module ' \
+          + @url.sub(REGISTRY, '') + \
+                                   '. please check your spelling.'
       end
     end
 
