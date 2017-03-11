@@ -31,7 +31,8 @@ module Node2RPM
         if version.nil?
           raise Node2RPM::Exception, "#{@pkg}'s dependency #{k} " \
                 "has nil-matched version! Raw version range: #{v}. " \
-                "All available versions: #{range}. " \ 
+                "All available versions: #{range}. Usually it means " \
+                "you need to clear your cache at /tmp/node2rpm." 
         end
         arr[k] = version
       end

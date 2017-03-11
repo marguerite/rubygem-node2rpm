@@ -20,7 +20,7 @@ module Node2RPM
       # @param [String]
       # @return [Hash]
 
-      if File.exist?(@filename)
+      if File.exist?(@filename) && !Node2RPM::Cache.new(@filename).clear?
         JSON.parse!(open(@filename, 'r:UTF-8').read)
       elsif exist?
         r = Curl::Easy.new(@url)
@@ -30,8 +30,7 @@ module Node2RPM
         json
       else
         raise Node2RPM::Exception, 'No such node module ' \
-          + @url.sub(REGISTRY, '') + \
-                                   '. please check your spelling.'
+          + @url.sub(REGISTRY, '') + '. please check your spelling.'
       end
     end
 
