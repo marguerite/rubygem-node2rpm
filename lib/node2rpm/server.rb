@@ -158,8 +158,8 @@ module Node2RPM
     end
 
     def binary?(file)
-      if file.sub(@dest_dir, '') =~ %r{/bin/} || file.end_with?('.node') \
-          || File.file?(file) && File.executable?(file)
+      if (file.sub(@dest_dir, '') =~ %r{/bin/} || file.end_with?('.node')) \
+          && File.file?(file) && File.executable?(file)
         true
       else
         false
