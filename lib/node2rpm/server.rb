@@ -54,7 +54,7 @@ module Node2RPM
     end
 
     def generate_filelist
-      open(File.join(@builddir, @pkg + '.list')) do |f|
+      open(File.join(@builddir, @pkg + '.list'), 'w:UTF-8') do |f|
         Dir.glob(@buildroot + '/**/*') do |i|
           if File.directory?(i)
             next if f == File.join(@buildroot, '/usr') ||
