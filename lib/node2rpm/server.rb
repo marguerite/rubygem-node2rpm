@@ -37,8 +37,8 @@ module Node2RPM
     end
 
     def copy
-      Dir.glob(@dest_dir + '/*') do |dir|
-        recursive_copy(File.join(@sourcedir, File.basename(dir)), dir)
+      Dir.glob(@dest_dir + '/**/*') do |dir|
+        recursive_copy(File.join(@sourcedir, File.basename(dir)), dir) unless dir.end_with?('node_modules')
       end
       recursive_rename
       symlink
@@ -105,7 +105,7 @@ module Node2RPM
     def recursive_copy(source, dest)
       Dir.glob(source + '/*') do |file|
         file = file_filter(file)
-        next if file.nil?
+        next if file.nil? || file.end_with?('node_modules')
         if File.directory?(file)
           dirname = File.basename(file)
           newdest = File.join(dest, dirname)
@@ -168,7 +168,7 @@ module Node2RPM
 
     def find_builddirs
       builddirs = []
-      Dir.glob(@buildroot + "/**/*") do |file|
+      Dir.glob(@dest_dir + "/**/*") do |file|
         next unless file =~ /\.(c|cc|cpp)$/
         name = File.basename(file, File.extname(file))
         path = File.split(file)[0].sub!(@buildroot, '')

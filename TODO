@@ -1,5 +1,4 @@
 * support bower
-* support specfile update
 * finish the server part and a new binary for that purpose, then nodejs-packaging will have the macros for RPM only.
 * support building the C node codes.
 * port the scripts that nodejs-packaging has here.
