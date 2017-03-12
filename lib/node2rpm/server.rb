@@ -38,7 +38,15 @@ module Node2RPM
 
     def copy
       Dir.glob(@dest_dir + '/**/*') do |dir|
-        recursive_copy(File.join(@sourcedir, File.basename(dir)), dir) unless dir.end_with?('node_modules')
+        # 1. don't copy the bundled dependencies in tgz
+        # 2. don't treat '@npmcorp' itself as a copy target
+        next if dir.end_with?('node_modules') || File.basename(dir).start_with?('@')
+        filename = if dir =~ %r{^.*(@[^/]+)/(.*$)}
+                     Regexp.last_match(1) + '%2F' + Regexp.last_match(2)
+                   else
+                     File.basename(dir)
+                   end
+        recursive_copy(File.join(@sourcedir, filename), dir)
       end
       recursive_rename
       symlink
@@ -134,7 +142,7 @@ module Node2RPM
 
     # rename versioned directory in buildroot to non-versioned
     def recursive_rename
-      Dir.glob(@dest_dir + '/**/*').sort{|x| x.size}.each do |file|
+      Dir.glob(@dest_dir + '/**/*').sort { |x| x.size }.each do |file|
         filename = File.basename(file)
         next unless File.directory?(file) && filename =~ /-\d+\.\d+/ # && file =~ /#{@dest_dir}/
         unversioned = filename.match(/(.*?)-\d+\.\d+.*/)[1]
@@ -168,7 +176,7 @@ module Node2RPM
 
     def find_builddirs
       builddirs = []
-      Dir.glob(@dest_dir + "/**/*") do |file|
+      Dir.glob(@dest_dir + '/**/*') do |file|
         next unless file =~ /\.(c|cc|cpp)$/
         name = File.basename(file, File.extname(file))
         path = File.split(file)[0].sub!(@buildroot, '')
@@ -190,7 +198,7 @@ module Node2RPM
     end
 
     def fix_permissions(file)
-      return unless File.file?(file) && File.executable?(file) && file =~ %r{/bin/}
+      return if file =~ %r{/bin/} || !File.file?(file) && File.executable?(file)
       puts "Fixing permission #{file}"
       IO.popen("chmod -x #{file}").close
     end
@@ -199,7 +207,10 @@ module Node2RPM
       Dir.glob(@dest_dir + '/**/{*,.*}')
          .select! { |d| File.directory?(d) }
          .select { |d| (Dir.entries(d) - %w(. ..)).empty? }
-         .each { |d| Dir.rmdir d }
+         .each do |d|
+           puts "Dropping empty directory #{d}..."
+           Dir.rmdir d
+         end
     end
   end
 end
