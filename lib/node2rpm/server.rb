@@ -37,7 +37,7 @@ module Node2RPM
     end
 
     def copy
-      Dir.glob(@dest_dir + '/**/*') do |dir|
+      Dir.glob(@dest_dir + '/*') do |dir|
         recursive_copy(File.join(@sourcedir, File.basename(dir)), dir)
       end
       recursive_rename
@@ -103,13 +103,13 @@ module Node2RPM
     end
 
     def recursive_copy(source, dest)
-      Dir.glob(source + '/**/*') do |file|
+      Dir.glob(source + '/*') do |file|
         file = file_filter(file)
         next if file.nil?
         if File.directory?(file)
           dirname = File.basename(file)
           newdest = File.join(dest, dirname)
-          puts "Makeing directory #{newdest}"
+          puts "Making directory #{newdest}"
           FileUtils.mkdir_p newdest
           recursive_copy(file, newdest)
         else
@@ -134,7 +134,7 @@ module Node2RPM
 
     # rename versioned directory in buildroot to non-versioned
     def recursive_rename
-      Dir.glob(@dest_dir + '/**/*').sort(&:size).each do |file|
+      Dir.glob(@dest_dir + '/**/*').sort{|x| x.size}.each do |file|
         filename = File.basename(file)
         next unless File.directory?(file) && filename =~ /-\d+\.\d+/ # && file =~ /#{@dest_dir}/
         unversioned = filename.match(/(.*?)-\d+\.\d+.*/)[1]

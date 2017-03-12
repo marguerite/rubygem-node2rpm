@@ -23,48 +23,48 @@ module Node2RPM
       license = @license.new.parse(pkg, version)
 
       if mega.empty?
-        mega[pkg] = { version: version,
-                      parent: parent,
+        mega[pkg] = { version: version, parent: parent,
                       parentversion: parentversion,
-                      license: license,
-                      dependencies: {} }
+                      license: license, dependencies: {} }
       elsif Node2RPM::JSONObject.new(mega).include?(pkg, version)
         # This indicates we have at least two modules rely on the same
         # dependency. usually we keep the shortest path, so we put
         # this dependency under the same parent of those two modules.
         parents_old = Node2RPM::Parent.new(pkg, version, mega).parents
-        parents_new = Node2RPM::Parent.new(parent, parentversion, mega)
-                                      .parents
+        parents_new = Node2RPM::Parent.new(parent, parentversion, mega).parents
         parents_new << parent # form parents for the same pkg
         intersected = intersect(parents_old, parents_new)
 
         oldparent = parents_old[-1]
-        oldparentversion = get_version(parents_old, mega)
         newparent = intersected[-1]
+        oldparentversion = get_version(parents_old, mega)
         newparentversion = get_version(intersected, mega)
 
         # we need to insert the new one and delete the old one.
         unless intersected.empty? # already been processed and moved.
-          Node2RPM::Parent.new(oldparent, oldparentversion, mega).walk(mega).delete(pkg)
-          Node2RPM::Parent.new(newparent, newparentversion, mega).walk(mega)[pkg] = { version: version, parent: newparent, parentversion: newparentversion, license: license, dependencies: {} }
+          Node2RPM::Parent.new(oldparent, oldparentversion, mega)
+                          .walk(mega).delete(pkg)
+          Node2RPM::Parent.new(newparent, newparentversion, mega)
+                          .walk(mega)[pkg] = { version: version,
+                                               parent: newparent,
+                                               parentversion: newparentversion,
+                                               license: license,
+                                               dependencies: {} }
         end
       else
         # occur the first time, so apply exclusion here.
         # we need to escape for some dependencies to allow package split.
         unless Node2RPM::Exclusion.new(exclusion).exclude?(pkg, version)
           walker = Node2RPM::Parent.new(parent, parentversion, mega).walk(mega)
-          walker[pkg] = { version: version,
-                          parent: parent,
+          walker[pkg] = { version: version, parent: parent,
                           parentversion: parentversion,
-                          license: license,
-                          dependencies: {} }
+                          license: license, dependencies: {} }
         end
       end
 
       unless dependencies.nil?
         dependencies.each do |k, v|
-          generate(pkg: k, version: v,
-                   exclusion: exclusion, parent: pkg,
+          generate(pkg: k, version: v, exclusion: exclusion, parent: pkg,
                    parentversion: version, mega: mega)
         end
       end
