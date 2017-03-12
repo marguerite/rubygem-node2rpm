@@ -2,7 +2,7 @@
 
 $LOAD_PATH.push(File.expand_path(File.dirname(__FILE__) + '/../lib'))
 
-require 'node2rpm'
+require 'node2rpm-server'
 
 case ARGV[0].sub('--', '')
 when 'prep'

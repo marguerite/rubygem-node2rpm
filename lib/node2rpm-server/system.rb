@@ -10,11 +10,13 @@ module Node2RPM
     end
 
     def builddir
-      File.join(@root, 'BUILD')
+      #File.join(@root, 'BUILD')
+      File.expand_path(File.dirname(__FILE__) + '/../../bin')
     end
 
     def self.sourcedir
-      Node2RPM::System.new.sourcedir
+      #Node2RPM::System.new.sourcedir
+      File.expand_path(File.dirname(__FILE__) + '/../../bin')
     end
 
     def sourcedir
@@ -22,7 +24,8 @@ module Node2RPM
     end
 
     def self.buildroot
-      Node2RPM::System.new.buildroot
+      #Node2RPM::System.new.buildroot
+      File.expand_path(File.dirname(__FILE__) + '/../../bin')
     end
 
     def buildroot
