@@ -53,7 +53,12 @@ module Node2RPM
     end
 
     def build
-      builddirs = find_builddirs
+      gyp_dir = find_gyp_dir
+      gyp_dir.each do |dir|
+        io = IO.popen("npm build #{dir}")
+        io.each_line { |l| puts l }
+        io.close
+      end
     end
 
     def clean
@@ -174,31 +179,34 @@ module Node2RPM
       end
     end
 
-    def find_builddirs
-      builddirs = []
+    def find_gyp_dir
+      gyp_dir = []
       Dir.glob(@dest_dir + '/**/*') do |file|
-        next unless file =~ /\.(c|cc|cpp)$/
-        name = File.basename(file, File.extname(file))
-        path = File.split(file)[0].sub!(@buildroot, '')
-        builddirs << File.join(@buildroot + path, name)
+        next unless file.end_with?('.gyp')
+        gyp_dir << File.split(file)[0]
       end
-      builddirs.uniq
+      gyp_dir
     end
 
     def clean_source_files
       Dir.glob(@dest_dir + '/**/{*,.*}') do |file|
         if File.basename(file) =~ /\.(c|h|cc|cpp|o|gyp|gypi)$
                     | Makefile$ | ^\..*$ /x
-          puts "Cleaning #{file}..."
+          puts "Cleaning #{file}"
           FileUtils.rm_rf file
         end
-        FileUtils.rm_rf file if file =~ %r{build/Release/obj\.target}
+
+        if file =~ %r{build/Release/obj\.target}
+          puts "Cleaning #{file}"
+          FileUtils.rm_rf file
+        end
         fix_permissions(file)
       end
     end
 
     def fix_permissions(file)
-      return if file =~ %r{/bin/} || !File.file?(file) && File.executable?(file)
+      return if file =~ %r{/bin/} || file.end_with?('.node') \
+                || !(File.file?(file) && File.executable?(file))
       puts "Fixing permission #{file}"
       IO.popen("chmod -x #{file}").close
     end
