@@ -31,7 +31,7 @@ end
 
 options = {}
 os = distro
-template = open(File.join('../template/', os + '.spec.erb')).read
+template = open(File.join(File.dirname(__FILE__) + '/../template/', os + '.spec.erb')).read
 erb = ERB.new(template, nil, '-')
 specfile = Struct.new(:name,
                       :version,
@@ -83,7 +83,7 @@ parser = OptionParser.new do |opts|
 end
 parser.parse!(ARGV)
 
-json = Node2RPM.generate(options[:name], options[:version], options[:exclusion])
+json, bower_pkgs = Node2RPM.generate(options[:name], options[:version], options[:exclusion])
 version = Node2RPM.version(json)
 
 # write the json file
@@ -94,6 +94,9 @@ open(dest_json, 'w:UTF-8') { |f| f.write JSON.pretty_generate(json) }
 # download the sources
 sources = Node2RPM.sources(json)
 Node2RPM.sourcedownload(sources, options[:path])
+
+# bower
+Node2RPM::Bower.new.prepare_components(bower_pkgs)
 
 # write the specfile
 dest_specfile = File.join(options[:path], 'nodejs-' + options[:name] + '.spec')
