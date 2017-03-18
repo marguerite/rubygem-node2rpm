@@ -11,9 +11,9 @@ module Node2RPM
       @bower ||= []
     end
 
-    def strip(pkg, dependencies)
+    def strip(pkg, version, dependencies)
       return unless dependencies.key?('bower')
-      @bower << pkg
+      @bower << [pkg, version]
       dependencies.delete('bower')
       dependencies
     end
@@ -27,14 +27,14 @@ module Node2RPM
       Dir.mkdir 'bower_components'
       pkgs.each do |pkg|
         current_dir = File.expand_path('.')
-        tarball = Dir.glob(current_dir + "/#{pkg}-*").select { |x| x.end_with?('.tgz') }[0]
+        tarball = Dir.glob(current_dir + '/' + pkg[0] + '-' + pkg[1] + '.tgz')[0]
         dir = File.join(current_dir, File.basename(tarball, File.extname(tarball)))
         unless File.exist?(dir)
           Dir.mkdir dir
           IO.popen("tar --warning=none --no-same-owner --no-same-permissions -xf #{tarball} -C #{dir} --strip-components=1").close
         end
         bower_json = File.join(dir, 'bower.json')
-        dest = File.join('bower_components', pkg)
+        dest = File.join('bower_components', pkg[0] + '-' + pkg[1])
         Dir.mkdir dest
         bower_structs(bower_json).each { |d| fillup(d, dest) }
       end
@@ -93,7 +93,7 @@ module Node2RPM
 
     def fillup(bower_dependency, dest)
       url = bower_dependency.url
-      dir = File.join(dest, bower_dependency.name)
+      dir = File.join(dest, bower_dependency.name + '-' + bower_dependency.version)
       tarball = File.join(dest, File.basename(url))
       unless File.exist?(dir)
         IO.popen("wget -c #{bower_dependency.url} -O #{tarball}").close

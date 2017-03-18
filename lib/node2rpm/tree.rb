@@ -21,7 +21,7 @@ module Node2RPM
       mega = options.fetch(:mega, {})
 
       dependencies = Node2RPM::Dependency.new(pkg, version).dependencies
-      dependencies = @bower.strip(pkg, dependencies)
+      dependencies = @bower.strip(pkg, version, dependencies)
       license = @license.new.parse(pkg, version)
 
       if mega.empty?

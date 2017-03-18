@@ -35,6 +35,8 @@ module Node2RPM
       else
         recursive_mkdir(@json, @dest_dir)
       end
+
+      @bower.mkdir if @bower.bower?
     end
 
     def copy
