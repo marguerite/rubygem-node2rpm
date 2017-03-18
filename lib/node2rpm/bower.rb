@@ -23,6 +23,7 @@ module Node2RPM
 
     def prepare_components(pkgs)
       return if pkgs.empty?
+      Dir.mkdir 'bower_components'
       pkgs.each do |pkg|
         current_dir = File.expand_path('.')
         tarball = Dir.glob(current_dir + "/#{pkg}-*").select { |x| x.end_with?('.tgz') }[0]
@@ -32,7 +33,10 @@ module Node2RPM
           IO.popen("tar --warning=none --no-same-owner --no-same-permissions -xf #{tarball} -C #{dir} --strip-components=1").close
         end
         bower_json = File.join(dir, 'bower.json')
-        p bower_structs(bower_json)
+        dest = 'bower_components/#{pkg}'
+        bower_structs(bower_json).each do |d|
+          fillup(d, dest)
+        end
       end
     end
 
@@ -40,12 +44,13 @@ module Node2RPM
 
     def bower_structs(json_file)
       structs = []
-      dependencies = bower_dependencies(json_file)
-      dependencies.each do |k, v|
+      bower_dependencies(json_file).each do |k, v|
         s = OpenStruct.new
         s.name = k
-        fits = fit_versions(lookup(k), v)
+        url = lookup(k)
+        fits = fit_versions(url + '/tags', v)
         s.version = Semver.max_satisfying(fits, v)
+        s.url = url + '/archive/' + s.version + '.tar.gz'
         structs << s
       end
       structs
@@ -59,29 +64,31 @@ module Node2RPM
     def lookup(string)
       r = Curl::Easy.new('http://bower.herokuapp.com/packages/' + string)
       r.perform
-      r.response_code != '404' ? JSON.parse(r.body_str)['url'] : nil
+      r.response_code != '404' ? JSON.parse(r.body_str)['url'].sub('.git', '') : nil
     end
 
     def fit_versions(url, range, versions = [])
-      tmp = []
-      html = Nokogiri::HTML(open(url.sub('.git', '') + '/tags'))
+      html = Nokogiri::HTML(open(url))
       version_objs = html.xpath('//span[@class="tag-name"]')
-      version_objs.each { |v| tmp << v.text if Semver.satisfies(v.text, range) }
-      # no need to get all versions, just versions in range
-      # !tmp.empty? means no fit in this page and next pages.
-      # !versions.empty? to eliminate the case if the first page doesn't have any
-      # versions fit.
-      if html.xpath('//diiv[@class="pagination"]/a') && !tmp.empty? && !versions.empty?
-        pagelinks = []
-        html.xpath('//div[@class="pagination"]/a/@href').each { |href| pagelinks << href.value }
-        # has previous and next, always use the last one in array, which is next.
-        # in the last page, there's only a 'previous' href, we should consider this.
-        newlink = pagelinks[pagelinks.size - 1] if pagelinks[pagelinks.size - 1].text == 'Next'
-        newlink.nil? ? versions.concat(tmp) : fit_versions(newlink, range, versions)
-      else
+      tmp = []
+      # sometimes the tag is not numberic
+      version_objs.each { |v| tmp << v.text if v.text =~ /\d+\.\d+\.\d+/ && Semver.satisfies(v.text, range) }
+      pagelinks = html.xpath('//div[@class="pagination"]/a')
+      return versions.concat(tmp) if pagelinks.empty?
+      # with previous and next, always use the last one in array, which is next.
+      # in the last page, there's only a 'previous' href, we should consider this.
+      newlink = pagelinks[pagelinks.size - 1]['href'] if pagelinks[pagelinks.size - 1].text == 'Next'
+      # if tmp is empty, no fit versions in this page. versions are
+      # in descending order, so no fit versions in the next pages either.
+      # but versions can't be empty at the same time, because the
+      # above policy applies only after we have all the matches found.
+      unless newlink.nil? || (tmp.empty? && !versions.empty?)
         versions.concat(tmp)
+        fit_versions(newlink, range, versions)
       end
       versions
     end
+
+    def fillup(bower_dependency, dest); end
   end
 end
