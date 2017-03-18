@@ -1,6 +1,8 @@
-* support bower
-* finish the server part and a new binary for that purpose, then nodejs-packaging will have the macros for RPM only.
+* SLE_11 support in server part
 * port the scripts that nodejs-packaging has here.
 * support nsp security check for the bundle.
 * consider to support the grunt auto tasks
 * rspec unit tests
+* think about how to handle recursive bower.json
+* multi-version support, we may lift a depenedency to a dir, that already contains
+  another version of the same dependency, we should make both package@version

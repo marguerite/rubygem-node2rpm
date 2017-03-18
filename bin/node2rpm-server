@@ -4,17 +4,19 @@ $LOAD_PATH.push(File.expand_path(File.dirname(__FILE__) + '/../lib'))
 
 require 'node2rpm-server'
 
+server = Node2RPM::Server.new
+
 case ARGV[0].sub('--', '')
 when 'prep'
-  Node2RPM::Server.new.prep
+  server.prep
 when 'mkdir'
-  Node2RPM::Server.new.mkdir
+  server.mkdir
 when 'copy'
-  Node2RPM::Server.new.copy
+  server.copy
 when 'build'
-  Node2RPM::Server.new.build
+  server.build
 when 'clean'
-  Node2RPM::Server.new.clean
+  server.clean
 when 'filelist'
-  Node2RPM::Server.new.generate_filelist
+  server.filelist
 end

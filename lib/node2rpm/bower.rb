@@ -3,6 +3,7 @@ require 'ostruct'
 require 'curb'
 require 'nokogiri'
 require 'node-semver'
+require 'fileutils'
 
 module Node2RPM
   class Bower
@@ -10,7 +11,7 @@ module Node2RPM
       @bower ||= []
     end
 
-    def bower?(pkg, dependencies)
+    def strip(pkg, dependencies)
       return unless dependencies.key?('bower')
       @bower << pkg
       dependencies.delete('bower')
@@ -37,6 +38,7 @@ module Node2RPM
         Dir.mkdir dest
         bower_structs(bower_json).each { |d| fillup(d, dest) }
       end
+      clean_ignore('bower_components')
       IO.popen('tar -cf bower_components.tgz bower_components').close
     end
 
@@ -98,6 +100,17 @@ module Node2RPM
         Dir.mkdir dir
         IO.popen("tar --warning=none --no-same-owner --no-same-permissions -xf #{tarball} -C #{dir} --strip-components=1").close
         IO.popen("rm -rf #{tarball}").close
+      end
+    end
+
+    def clean_ignore(dir)
+      Dir.glob(dir + '/**/bower.json').each do |f|
+        json = JSON.parse(open(f, 'r:UTF-8').read)
+        dir = File.dirname(f)
+        json['ignore'].each do |i|
+          i = Regexp.last_match(1) if i =~ %r{^/(.*$)}
+          Dir.glob(dir + '/' + i).each { |j| FileUtils.rm_rf j }
+        end
       end
     end
   end

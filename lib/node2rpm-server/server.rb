@@ -15,6 +15,7 @@ module Node2RPM
       # json still nil means no .json in sourcedir, the packager
       # chose the traditional way to package separated modules.
       @json = json.nil? ? nil : JSON.parse(open(json, 'r:UTF-8').read)
+      @bower = Node2RPM::Bower.new
     end
 
     def prep
@@ -25,7 +26,7 @@ module Node2RPM
         FileUtils.mv File.join(@sourcedir, 'package'), File.join(@sourcedir, name)
       end
 
-      # FIXME: bower
+      @bower.prep if @bower.bower?
     end
 
     def mkdir
@@ -50,6 +51,8 @@ module Node2RPM
       end
       recursive_rename
       symlink
+
+      @bower.copy if @bower.bower?
     end
 
     def build
@@ -66,7 +69,7 @@ module Node2RPM
       clean_empty_directories
     end
 
-    def generate_filelist
+    def filelist
       open(File.join(@builddir, @pkg + '.list'), 'w:UTF-8') do |f|
         Dir.glob(@buildroot + '/**/*') do |i|
           if File.directory?(i)
@@ -134,7 +137,7 @@ module Node2RPM
 
     # drop the unneeded file
     def file_filter(file)
-      arr = file.sub(@dest_dir, '').split('/').reject(&:empty?)[1..-1]
+      arr = file.sub(@dest_dir, '').split('/').reject { |x| x.empty? }[1..-1]
       r = /^\..*$ | .*~$ |
             \.(bat|orig|bak|sh|sln|njsproj|exe)$ |
             Makefile | example(s)?(\.js)? | benchmark(s)?(\.js)? |
