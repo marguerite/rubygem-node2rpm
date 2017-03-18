@@ -33,11 +33,11 @@ module Node2RPM
           IO.popen("tar --warning=none --no-same-owner --no-same-permissions -xf #{tarball} -C #{dir} --strip-components=1").close
         end
         bower_json = File.join(dir, 'bower.json')
-        dest = 'bower_components/#{pkg}'
-        bower_structs(bower_json).each do |d|
-          fillup(d, dest)
-        end
+        dest = File.join('bower_components', pkg)
+        Dir.mkdir dest
+        bower_structs(bower_json).each { |d| fillup(d, dest) }
       end
+      IO.popen('tar -cf bower_components.tgz bower_components').close
     end
 
     private
@@ -89,6 +89,16 @@ module Node2RPM
       versions
     end
 
-    def fillup(bower_dependency, dest); end
+    def fillup(bower_dependency, dest)
+      url = bower_dependency.url
+      dir = File.join(dest, bower_dependency.name)
+      tarball = File.join(dest, File.basename(url))
+      unless File.exist?(dir)
+        IO.popen("wget -c #{bower_dependency.url} -O #{tarball}").close
+        Dir.mkdir dir
+        IO.popen("tar --warning=none --no-same-owner --no-same-permissions -xf #{tarball} -C #{dir} --strip-components=1").close
+        IO.popen("rm -rf #{tarball}").close
+      end
+    end
   end
 end

@@ -83,6 +83,7 @@ parser = OptionParser.new do |opts|
 end
 parser.parse!(ARGV)
 
+puts 'Generating json...'
 json, bower_pkgs = Node2RPM.generate(options[:name], options[:version], options[:exclusion])
 version = Node2RPM.version(json)
 
@@ -92,10 +93,12 @@ dest_json = File.join(options[:path], options[:name] + '-' + version + '.json')
 open(dest_json, 'w:UTF-8') { |f| f.write JSON.pretty_generate(json) }
 
 # download the sources
+puts 'Downloading sources...it may take a while'
 sources = Node2RPM.sources(json)
 Node2RPM.sourcedownload(sources, options[:path])
 
 # bower
+puts 'Preparing bower_components.tgz...'
 Node2RPM::Bower.new.prepare_components(bower_pkgs)
 
 # write the specfile
@@ -109,6 +112,7 @@ if File.exist?(dest_specfile)
   new_specfile = f.sub(sourceobj.inspect(oldsource), form_source(sources))
                   .sub(/License:.*?\n/m, "License:\t#{Node2RPM.licenses(json)}\n")
                   .sub(/Version:.*?\n/m, "Version:\t#{version}\n")
+  puts "Updating #{options[:name]}.spec..."
   open(dest_specfile, 'w:UTF-8') { |f1| f1.write new_specfile }
 else
   description = Node2RPM::Attribute.create('description').new.parse(options[:name], version)
@@ -121,5 +125,8 @@ else
                       description,
                       sources,
                       Time.now.year)
+  puts "Generating #{options[:name]}.spec..."
   open(dest_specfile, 'w:UTF-8') { |f1| f1.write erb.result(binding) }
 end
+
+puts 'Everything successful. Congratulations!'
