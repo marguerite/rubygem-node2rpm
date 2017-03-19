@@ -12,7 +12,7 @@ module Node2RPM
     end
 
     def strip(pkg, version, dependencies)
-      return unless dependencies.key?('bower')
+      return dependencies unless !dependencies.nil? && dependencies.key?('bower')
       @bower << [pkg, version]
       dependencies.delete('bower')
       dependencies
