@@ -40,6 +40,7 @@ module Node2RPM
                   end
       tarball = File.join(path, name + '-' + s.version + '.tgz')
       next if File.exist?(tarball)
+      puts "Downloading #{tarball}"
       r = Curl::Easy.new(url)
       r.perform
       open(tarball, 'w') { |f| f.write r.body_str }
