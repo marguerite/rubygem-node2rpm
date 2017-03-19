@@ -24,21 +24,26 @@ module Node2RPM
 
     def prepare_components(pkgs)
       return if pkgs.empty?
+      puts 'Creating bower_components...'
       Dir.mkdir 'bower_components'
       pkgs.each do |pkg|
         current_dir = File.expand_path('.')
         tarball = Dir.glob(current_dir + '/' + pkg[0] + '-' + pkg[1] + '.tgz')[0]
         dir = File.join(current_dir, File.basename(tarball, File.extname(tarball)))
         unless File.exist?(dir)
+          puts "Creating #{dir}"
           Dir.mkdir dir
+          puts "Unpacking #{tarball}..."
           IO.popen("tar --warning=none --no-same-owner --no-same-permissions -xf #{tarball} -C #{dir} --strip-components=1").close
         end
         bower_json = File.join(dir, 'bower.json')
         dest = File.join('bower_components', pkg[0] + '-' + pkg[1])
+        puts "Creating #{dest}"
         Dir.mkdir dest
         bower_structs(bower_json).each { |d| fillup(d, dest) }
       end
       clean_ignore('bower_components')
+      puts 'Compressing bower_components.tgz...'
       IO.popen('tar -cf bower_components.tgz bower_components').close
     end
 
@@ -64,6 +69,7 @@ module Node2RPM
     end
 
     def lookup(string)
+      puts "Querying http://bower.herokuapp.com/packages/#{string}..."
       r = Curl::Easy.new('http://bower.herokuapp.com/packages/' + string)
       r.perform
       r.response_code != '404' ? JSON.parse(r.body_str)['url'].sub('.git', '') : nil
@@ -96,9 +102,12 @@ module Node2RPM
       dir = File.join(dest, bower_dependency.name + '-' + bower_dependency.version)
       tarball = File.join(dest, File.basename(url))
       unless File.exist?(dir)
+        puts "Downloading #{bower_dependency.url}..."
         IO.popen("wget -c #{bower_dependency.url} -O #{tarball}").close
         Dir.mkdir dir
+        puts "Unpacking #{tarball}..."
         IO.popen("tar --warning=none --no-same-owner --no-same-permissions -xf #{tarball} -C #{dir} --strip-components=1").close
+        puts "Removing #{tarball}..."
         IO.popen("rm -rf #{tarball}").close
       end
     end
@@ -109,7 +118,12 @@ module Node2RPM
         dir = File.dirname(f)
         json['ignore'].each do |i|
           i = Regexp.last_match(1) if i =~ %r{^/(.*$)}
-          Dir.glob(dir + '/' + i).each { |j| FileUtils.rm_rf j }
+          Dir.glob(dir + '/' + i).each do |j|
+            # avoid '.' and '..' being removed
+            next if j.end_with?('.')
+            puts "Cleaning #{j}"
+            FileUtils.rm_rf j
+          end
         end
       end
     end
