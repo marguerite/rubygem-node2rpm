@@ -9,13 +9,13 @@ module Node2RPM
       @buildroot = Node2RPM::System.buildroot
       @sitelib = Node2RPM::System.sitelib
       @dest_dir = File.join(@buildroot, @sitelib)
+      @bower_dir = File.join(@sourcedir, 'bower_components')
       @specfile = open(Dir.glob(@sourcedir + '/*.spec')[0], 'r:UTF-8').read
       @pkg = @specfile.match(/mod_name(\s|\t)+(.*?)\n/m)[2]
       json ||= Dir.glob(@sourcedir + '/*.json')[0]
       # json still nil means no .json in sourcedir, the packager
       # chose the traditional way to package separated modules.
       @json = json.nil? ? nil : JSON.parse(open(json, 'r:UTF-8').read)
-      @bower = Node2RPM::Bower.new
     end
 
     def prep
@@ -23,10 +23,10 @@ module Node2RPM
       Dir.glob(@sourcedir + '/*.tgz') do |tar|
         name = File.basename(tar, File.extname(tar))
         IO.popen("tar --warning=none --no-same-owner --no-same-permissions -xf #{tar} -C #{@sourcedir}").close
-        FileUtils.mv File.join(@sourcedir, 'package'), File.join(@sourcedir, name)
+        source = File.join(@sourcedir, 'package')
+        dest = File.join(@sourcedir, name)
+        FileUtils.mv source, dest if File.exist?(source)
       end
-
-      @bower.prep if @bower.bower?
     end
 
     def mkdir
@@ -36,14 +36,20 @@ module Node2RPM
         recursive_mkdir(@json, @dest_dir)
       end
 
-      @bower.mkdir if @bower.bower?
+      return unless bower?
+      Dir.glob(@bower_dir + '/*') do |dir|
+        dest = Dir.glob(@dest_dir + '/**/' + File.basename(dir))[0]
+        puts "Creating #{File.join(dest, 'bower_components')}"
+        Dir.mkdir File.join(dest, 'bower_components')
+      end
     end
 
     def copy
       Dir.glob(@dest_dir + '/**/*') do |dir|
         # 1. don't copy the bundled dependencies in tgz
-        # 2. don't treat '@npmcorp' itself as a copy target
-        next if dir.end_with?('node_modules') || File.basename(dir).start_with?('@')
+        # 2. don't copy bower_components
+        # 3. don't treat '@npmcorp' itself as a copy target
+        next if dir =~ /(node_modules|bower_components)$/ || File.basename(dir).start_with?('@')
         filename = if dir =~ %r{^.*(@[^/]+)/(.*$)}
                      Regexp.last_match(1) + '%2F' + Regexp.last_match(2)
                    else
@@ -51,10 +57,12 @@ module Node2RPM
                    end
         recursive_copy(File.join(@sourcedir, filename), dir)
       end
+      Dir.glob(@bower_dir + '/*') do |dir|
+        dest = Dir.glob(@dest_dir + '/**/' + File.basename(dir))[0]
+        recursive_copy(dir, dest + '/bower_components')
+      end
       recursive_rename
       symlink
-
-      @bower.copy if @bower.bower?
     end
 
     def build
@@ -128,7 +136,7 @@ module Node2RPM
           dirname = File.basename(file)
           newdest = File.join(dest, dirname)
           puts "Making directory #{newdest}"
-          FileUtils.mkdir_p newdest
+          Dir.mkdir newdest
           recursive_copy(file, newdest)
         else
           puts "Copying #{file} to #{dest}"
@@ -154,8 +162,8 @@ module Node2RPM
     def recursive_rename
       Dir.glob(@dest_dir + '/**/*').sort { |x| x.size }.each do |file|
         filename = File.basename(file)
-        next unless File.directory?(file) && filename =~ /-\d+\.\d+/ # && file =~ /#{@dest_dir}/
-        unversioned = filename.match(/(.*?)-\d+\.\d+.*/)[1]
+        next unless File.directory?(file) && filename =~ /-(v)?\d+\.\d+/
+        unversioned = filename.match(/(.*?)-(v)?\d+\.\d+.*/)[1]
         path = File.split(file)[0].sub(@dest_dir, '')
         puts "Renaming #{file} to #{File.join(@dest_dir + path, unversioned)}"
         FileUtils.mv file, File.join(@dest_dir + path, unversioned)
@@ -167,7 +175,7 @@ module Node2RPM
       Dir.glob(@dest_dir + '/**/*') do |file|
         next unless binary?(file)
         filename = File.basename(file)
-        next if exclude.include?(filename)
+        next if exclude.include?(filename) || file.index('bower_components')
         FileUtils.mkdir_p bindir unless Dir.exist?(bindir)
         path = File.split(file)[0].sub(@buildroot, '')
         puts "Linking #{File.join(path, filename)} to #{File.join(bindir, filename)}"
@@ -224,6 +232,10 @@ module Node2RPM
            puts "Dropping empty directory #{d}..."
            Dir.rmdir d
          end
+    end
+
+    def bower?
+      File.exist?(@bower_dir + '.tgz')
     end
   end
 end

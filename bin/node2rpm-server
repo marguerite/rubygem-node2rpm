@@ -2,7 +2,7 @@
 
 $LOAD_PATH.push(File.expand_path(File.dirname(__FILE__) + '/../lib'))
 
-require 'node2rpm-server'
+require 'node2rpm'
 
 server = Node2RPM::Server.new
 
