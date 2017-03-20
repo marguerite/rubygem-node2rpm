@@ -150,9 +150,9 @@ module Node2RPM
     def file_filter(file)
       arr = file.sub(@dest_dir, '').split('/').reject { |x| x.empty? }[1..-1]
       r = /^\..*$ | .*~$ |
-            \.(bat|orig|bak|sh|sln|njsproj|exe)$ |
-            Makefile | example(s)?(\.js)? | benchmark(s)?(\.js)? |
-            sample(s)?(\.js)? | test(s)?(\.js)? | _test\. |
+            \.(bat|cmd|orig|bak|sh|sln|njsproj|exe)$ |
+            Makefile | example(s)?(\.js)?$ | benchmark(s)?(\.js)?$ |
+            sample(s)?(\.js)?$ | test(s)?(\.js)?$ | _test\. |
             browser$ | windows | appveyor\.yml
           /x
       return unless arr.grep(r).empty?
