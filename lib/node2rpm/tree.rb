@@ -19,10 +19,13 @@ module Node2RPM
       pkg = options.fetch(:pkg, @pkg)
       version = options.fetch(:version, @version)
       mega = options.fetch(:mega, {})
+      Node2RPM::Logger.new("processing #{pkg},#{version},#{parent},#{parentversion}")
 
       dependencies = Node2RPM::Dependency.new(pkg, version).dependencies
+      Node2RPM::Logger.new("dependencies of #{pkg}-#{version}: #{dependencies}")
       dependencies = @bower.strip(pkg, version, dependencies)
       license = @license.new.parse(pkg, version)
+      Node2RPM::Logger.new("license of #{pkg}: #{license}")
 
       if mega.empty?
         mega[pkg] = { version: version, parent: parent,
@@ -44,6 +47,7 @@ module Node2RPM
 
         # we need to insert the new one and delete the old one.
         unless intersected.empty? # already been processed and moved.
+          Node2RPM::Logger.new("moving from #{parents_old} to #{intersected}")
           Node2RPM::Parent.new(oldparent, oldparentversion, mega)
                           .walk(mega).delete(pkg)
           Node2RPM::Parent.new(newparent, newparentversion, mega)

@@ -22,6 +22,7 @@ module Node2RPM
       # unpack the tarballs
       Dir.glob(@sourcedir + '/*.tgz') do |tar|
         name = File.basename(tar, File.extname(tar))
+        puts "Unpacking #{tar}"
         IO.popen("tar --warning=none --no-same-owner --no-same-permissions -xf #{tar} -C #{@sourcedir}").close
         source = File.join(@sourcedir, 'package')
         dest = File.join(@sourcedir, name)
@@ -50,7 +51,7 @@ module Node2RPM
         # 2. don't copy bower_components
         # 3. don't treat '@npmcorp' itself as a copy target
         next if dir =~ /(node_modules|bower_components)$/ || File.basename(dir).start_with?('@')
-        filename = if dir =~ %r{^.*(@[^/]+)/(.*$)}
+        filename = if dir =~ %r{^.*(@[^/]+)/(.*$)} && !Regexp.last_match(2).index('node_modules')
                      Regexp.last_match(1) + '%2F' + Regexp.last_match(2)
                    else
                      File.basename(dir)
