@@ -10,7 +10,18 @@ module Node2RPM
                                      else
                                        Node2RPM::History.new(pkg).last
                                      end
-                           json['versions'][version][name]
+                           if json['versions'][version][name].nil?
+                             case name
+                             when 'license'
+                               fallback = json['versions'][version]['licenses']
+                               fallback.nil? ? nil : fallback[0]['type']
+                             when 'homepage'
+                               fallback = json['versions'][version]['repository']
+                               fallback.nil? ? nil : fallback['url'].sub('git://', 'https://')
+                             end
+                           else
+                             json['versions'][version][name]
+                           end
                          end
                        end)
     end

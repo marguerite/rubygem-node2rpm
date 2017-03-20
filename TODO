@@ -8,4 +8,3 @@
   another version of the same dependency, we should make both package@version **important!
 * bower dependencies in specfile **important!
 * bundleDependencies in package.json
-* debug why some licenses were written to NULL **important!
