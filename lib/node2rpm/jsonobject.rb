@@ -33,7 +33,8 @@ module Node2RPM
       result = false
       json = parse
       json.each do |j|
-        if j.name == pkg && j.version == version
+        # the name@version should be considered as include.
+        if j.name =~ /^#{pkg}(@\d.*)?/ && j.version == version
           result = true
           break
         end

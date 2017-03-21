@@ -31,9 +31,15 @@ module Node2RPM
     path ||= './'
     sources.each do |s|
       name, url = if s.name =~ %r{^(@[^/%]+)/(.*)$}
+                    # @npmcorp/copy uses a specfial url
                     [Regexp.last_match(1) + '%2F' + Regexp.last_match(2),
                      REGISTRY + s.name + '/-/' + Regexp.last_match(2) \
                      + '-' + s.version + '.tgz']
+                  elsif s.name =~ /(.*)@\d.*/
+                    # remove '@version' from name@version
+                    [Regexp.last_match(1),
+                     REGISTRY + Regexp.last_match(1) + '/-/' + \
+                       Regexp.last_match(1) + '-' + s.version + '.tgz']
                   else
                     [s.name,
                      REGISTRY + s.name + '/-/' + s.name + '-' + s.version + '.tgz']

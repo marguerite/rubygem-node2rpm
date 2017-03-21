@@ -34,7 +34,10 @@ module Node2RPM
       elsif Node2RPM::JSONObject.new(mega).include?(pkg, version)
         # This indicates we have at least two modules rely on the same
         # dependency. usually we keep the shortest path, so we put
-        # this dependency under the same parent of those two modules.
+        # this dependency under the same parent of those two modules:
+        # parents_old finds the location of the existing one;
+        # parents_new uses the location of the parent of the pkg to be inserted,
+        # because the new pkg hasn't been inserted, no way to use itself.
         parents_old = Node2RPM::Parent.new(pkg, version, mega).parents
         parents_new = Node2RPM::Parent.new(parent, parentversion, mega).parents
         parents_new << parent # form parents for the same pkg
@@ -46,16 +49,27 @@ module Node2RPM
         newparentversion = get_version(intersected, mega)
 
         # we need to insert the new one and delete the old one.
-        unless intersected.empty? # already been processed and moved.
+        # unless: 1. already been processed and moved.
+        #         2. no need to move at all
+        unless intersected.empty? || intersected == parents_old
           Node2RPM::Logger.new("moving from #{parents_old} to #{intersected}")
-          Node2RPM::Parent.new(oldparent, oldparentversion, mega)
-                          .walk(mega).delete(pkg)
-          Node2RPM::Parent.new(newparent, newparentversion, mega)
-                          .walk(mega)[pkg] = { version: version,
-                                               parent: newparent,
-                                               parentversion: newparentversion,
-                                               license: license,
-                                               dependencies: {} }
+          Node2RPM::Parent.new(oldparent, oldparentversion, mega).walk(mega).delete(pkg)
+
+          if Node2RPM::Parent.new(newparent, newparentversion, mega).walk(mega)[pkg].nil?
+            Node2RPM::Parent.new(newparent, newparentversion, mega)
+                            .walk(mega)[pkg] = { version: version,
+                                                 parent: newparent,
+                                                 parentversion: newparentversion,
+                                                 license: license,
+                                                 dependencies: {} }
+          elsif Node2RPM::Parent.new(newparent, newparentversion, mega).walk(mega)[pkg][:version] != version
+            Node2RPM::Parent.new(newparent, newparentversion, mega)
+                            .walk(mega)[pkg + '@' + version] = { version: version,
+                                                                 parent: newparent,
+                                                                 parentversion: newparentversion,
+                                                                 license: license,
+                                                                 dependencies: {} }
+          end
         end
       else
         # occur the first time, so apply exclusion here.
@@ -82,10 +96,11 @@ module Node2RPM
 
     def get_version(arr, hash)
       return if arr.size <= 1
-      (1..(arr.size - 1)).each do |i|
-        return hash[arr[i]][:version] if i == arr.size - 1
+      (1..arr.size - 1).each do |i|
+        next if i == arr.size - 1
         hash = hash[arr[i]][:dependencies]
       end
+      hash[arr[-1]][:version]
     end
 
     def intersect(arr1, arr2)

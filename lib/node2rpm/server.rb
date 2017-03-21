@@ -53,6 +53,8 @@ module Node2RPM
         next if dir =~ /(node_modules|bower_components)$/ || File.basename(dir).start_with?('@')
         filename = if dir =~ %r{^.*(@[^/]+)/(.*$)} && !Regexp.last_match(2).index('node_modules')
                      Regexp.last_match(1) + '%2F' + Regexp.last_match(2)
+                   elsif dir =~ /(^.*)@[^-]+(-\d.*$)/
+                     File.basename(Regexp.last_match(1) + Regexp.last_match(2))
                    else
                      File.basename(dir)
                    end
@@ -153,7 +155,7 @@ module Node2RPM
             \.(bat|cmd|orig|bak|sh|sln|njsproj|exe)$ |
             Makefile | example(s)?(\.js)?$ | benchmark(s)?(\.js)?$ |
             sample(s)?(\.js)?$ | test(s)?(\.js)?$ | _test\. |
-            browser$ | windows | appveyor\.yml
+            browser$ | coverage | windows | appveyor\.yml
           /x
       return unless arr.grep(r).empty?
       file

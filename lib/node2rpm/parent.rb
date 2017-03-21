@@ -8,7 +8,10 @@ module Node2RPM
 
     def parents(pkg = @pkg, version = @version, arr = [])
       @json.each do |j|
-        if j.name == pkg && j.version == version
+        # .parents method are used to find parents for existing
+        # pkg in json. name@version format should be treated the
+        # same as name.
+        if j.name =~ /^#{pkg}(@\d.*)?/ && j.version == version
           arr << j.parent
           parents(j.parent, j.parentversion, arr)
         end

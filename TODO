@@ -4,7 +4,5 @@
 * consider to support the grunt auto tasks
 * rspec unit tests
 * think about how to handle recursive bower.json
-* multi-version support, we may lift a depenedency to a dir, that already contains
-  another version of the same dependency, we should make both package@version **important!
 * bower dependencies in specfile **important!
 * bundleDependencies in package.json
