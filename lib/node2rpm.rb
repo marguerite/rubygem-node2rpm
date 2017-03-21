@@ -4,6 +4,8 @@ Dir.glob(path + '/*').each do |i|
   require dir + '/' + File.basename(i) if File.basename(i).end_with?('.rb')
 end
 
+require 'ostruct'
+
 module Node2RPM
   def self.generate(pkg, ver, exclude)
     Node2RPM::Tree.new(pkg, ver).generate(exclusion: exclude)
@@ -15,21 +17,20 @@ module Node2RPM
   end
 
   def self.sources(json, source = [])
-    sourceobj = Struct.new(:url, :tarball)
-
     json.each do |k, v|
-      url = if k =~ %r{^(@[^/%]+)/(.*)$}
-              REGISTRY + k + '/-/' + Regexp.last_match(2) + '-' + \
-                v[:version] + '.tgz'
-            elsif k =~ /(.*)@\d.*/
-              # remove '@version' from name@version
-              REGISTRY + Regexp.last_match(1) + \
-                '/-/' + Regexp.last_match(1) + '-' + v[:version] + '.tgz'
-            else
-              REGISTRY + k + '/-/' + k + '-' + v[:version] + '.tgz'
-            end
-      tarball = File.basename(url)
-      source << sourceobj.new(url, tarball)
+      s = OpenStruct.new
+      s.url = if k =~ %r{^(@[^/%]+)/(.*)$}
+                REGISTRY + k + '/-/' + Regexp.last_match(2) + '-' + \
+                  v[:version] + '.tgz'
+              elsif k =~ /(.*)@\d.*/
+                # remove '@version' from name@version
+                REGISTRY + Regexp.last_match(1) + \
+                  '/-/' + Regexp.last_match(1) + '-' + v[:version] + '.tgz'
+              else
+                REGISTRY + k + '/-/' + k + '-' + v[:version] + '.tgz'
+              end
+      s.tarball = File.basename(s.url)
+      source << s
       v[:dependencies].empty? || sources(v[:dependencies], source)
     end
 

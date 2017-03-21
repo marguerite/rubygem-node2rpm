@@ -23,8 +23,7 @@ License:  <%= spec.licenses %>
 Summary:  <%= spec.summary %>
 Url:  <%= spec.homepage %>
 Group:  Development/Languages/NodeJS
-Source0:	<%= spec.name %>-<%= spec.version %>.json
-<% i = 2 ; for s in spec.sources -%>
+<% i = 0 ; for s in spec.sources -%>
 Source<%= i %>:	<%= s.url %>
 <% i += 1 ; end -%>
 BuildRequires:  nodejs6

@@ -4,5 +4,4 @@
 * consider to support the grunt auto tasks
 * rspec unit tests
 * think about how to handle recursive bower.json
-* bower dependencies in specfile **important!
 * bundleDependencies in package.json

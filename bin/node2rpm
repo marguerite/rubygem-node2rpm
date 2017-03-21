@@ -7,6 +7,7 @@ require 'rpmspec'
 require 'json'
 require 'optparse'
 require 'erb'
+require 'ostruct'
 
 def distro
   distro = ''
@@ -21,7 +22,7 @@ end
 
 def form_source(arr)
   str = ''
-  i = 1
+  i = 0
   arr.each do |s|
     str << "Source#{i}:\t#{s.url}\n"
     i += 1
@@ -33,14 +34,6 @@ options = {}
 os = distro
 template = open(File.join(File.dirname(__FILE__) + '/../template/', os + '.spec.erb')).read
 erb = ERB.new(template, nil, '-')
-specfile = Struct.new(:name,
-                      :version,
-                      :licenses,
-                      :summary,
-                      :homepage,
-                      :description,
-                      :sources,
-                      :year)
 
 parser = OptionParser.new do |opts|
   opts.banner = 'Usage: node2rpm -m <mod> -v <ver> -p <path> [options]'
@@ -96,10 +89,16 @@ open(dest_json, 'w:UTF-8') { |f| f.write JSON.pretty_generate(json) }
 puts 'Downloading sources...it may take a while'
 sources = Node2RPM.sources(json)
 Node2RPM.sourcedownload(sources, options[:path])
+pkgjson = OpenStruct.new
+pkgjson.url = options[:name] + '-' + version + '.json'
+sources << pkgjson
 
 # bower
 puts 'Preparing bower_components.tgz...'
 Node2RPM::Bower.new.prepare_components(bower_pkgs)
+bower = OpenStruct.new
+bower.url = 'bower_components.tgz'
+sources << bower unless bower_pkg.empty?
 
 # write the specfile
 dest_specfile = File.join(options[:path], options[:name] + '.spec')
@@ -117,14 +116,15 @@ if File.exist?(dest_specfile)
 else
   description = Node2RPM::Attribute.create('description').new.parse(options[:name], version)
   homepage = Node2RPM::Attribute.create('homepage').new.parse(options[:name], version)
-  spec = specfile.new(options[:name],
-                      version,
-                      Node2RPM.licenses(json),
-                      description,
-                      homepage,
-                      description,
-                      sources,
-                      Time.now.year)
+  spec = OpenStruct.new
+  spec.name = options[:name]
+  spec.version = version
+  spec.licenses = Node2RPM.licenses(json)
+  spec.summary = description
+  spec.homepage = homepage
+  spec.description = description
+  spec.sources = sources
+  spec.year = Time.now.year
   puts "Generating #{options[:name]}.spec..."
   open(dest_specfile, 'w:UTF-8') { |f1| f1.write erb.result(binding) }
 end
