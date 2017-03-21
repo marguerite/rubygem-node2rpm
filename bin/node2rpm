@@ -21,9 +21,9 @@ end
 
 def form_source(arr)
   str = ''
-  i = 0
+  i = 1
   arr.each do |s|
-    str << "Source#{i}:\thttp://registry.npmjs.org/#{s.name}/-/#{s.name}-#{s.version}.tgz\n"
+    str << "Source#{i}:\t#{s.url}\n"
     i += 1
   end
   str
@@ -102,7 +102,7 @@ puts 'Preparing bower_components.tgz...'
 Node2RPM::Bower.new.prepare_components(bower_pkgs)
 
 # write the specfile
-dest_specfile = File.join(options[:path], 'nodejs-' + options[:name] + '.spec')
+dest_specfile = File.join(options[:path], options[:name] + '.spec')
 
 if File.exist?(dest_specfile)
   f = open(dest_specfile).read

@@ -51,8 +51,8 @@ module Node2RPM
         # 2. don't copy bower_components
         # 3. don't treat '@npmcorp' itself as a copy target
         next if dir =~ /(node_modules|bower_components)$/ || File.basename(dir).start_with?('@')
-        filename = if dir =~ %r{^.*(@[^/]+)/(.*$)} && !Regexp.last_match(2).index('node_modules')
-                     Regexp.last_match(1) + '%2F' + Regexp.last_match(2)
+        filename = if dir =~ %r{^.*@[^/]+/(.*$)} && !Regexp.last_match(1).index('node_modules')
+                     Regexp.last_match(1)
                    elsif dir =~ /(^.*)@[^-]+(-\d.*$)/
                      File.basename(Regexp.last_match(1) + Regexp.last_match(2))
                    else
@@ -117,7 +117,7 @@ module Node2RPM
     def recursive_mkdir(json, workspace)
       json.each do |k, v|
         version = v['version']
-        # versioned dir first, to avoid copy wrong files
+        # use versioned dir to avoid copy wrong files
         dest = File.join(workspace, k + '-' + version)
         unless !manual_requires.nil? && Node2RPM::Exclusion.new(manual_requires).exclude?(k, version)
           puts "Creating #{dest}"
