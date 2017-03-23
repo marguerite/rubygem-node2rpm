@@ -114,6 +114,7 @@ module Node2RPM
       m
     end
 
+    # recursively create directories based on the json node2rpm produced
     def recursive_mkdir(json, workspace)
       json.each do |k, v|
         version = v['version']
@@ -131,6 +132,7 @@ module Node2RPM
       end
     end
 
+    # recursively copy files from sourcedir to buildroot
     def recursive_copy(source, dest)
       Dir.glob(source + '/*') do |file|
         file = file_filter(file)
@@ -142,10 +144,35 @@ module Node2RPM
           Dir.mkdir newdest
           recursive_copy(file, newdest)
         else
-          puts "Copying #{file} to #{dest}"
-          FileUtils.cp_r file, dest
+          copy_file(file, dest)
         end
       end
+    end
+
+    # copy file or symlink to buildroot
+    def copy_file(file, dest)
+      if File.symlink?(file)
+        real_symlink(file, dest)
+      else
+        puts "Copying #{file} to #{dest}"
+        FileUtils.cp_r file, dest
+      end
+    end
+
+    # recreate a symlink from the location of the real file to be installed
+    # eg, the given link is "@sourcedir + '/example-1.0.0/bin/example'"
+    #     the real file behind is "@sourcedir + '/example-1.0.0/lib/example.js'"
+    #     the target is "@dest_dir + '/a-1.0.0/node_modules/.../example-1.0.0/bin/example'"
+    # we need to create a symlink from the install location of the real file,
+    # to the target
+    def real_symlink(link, dest)
+      real_file = File.expand_path(File.split(link)[0] + '/' + File.readlink(link))
+      real_name = File.basename(real_file)
+      dest_name = File.basename(link)
+      target_path = File.split(File.expand_path(dest + '/' + File.readlink(link)))[0].sub(@buildroot, '')
+      target = File.join(target_path, real_name).gsub(/-\d+\.\d+\.\d+/, '')
+      puts "Creating symlink from #{target} to #{File.join(dest, dest_name)}"
+      FileUtils.ln_sf target, File.join(dest, dest_name)
     end
 
     # drop the unneeded file
@@ -178,7 +205,7 @@ module Node2RPM
       Dir.glob(@dest_dir + '/**/*') do |file|
         next unless binary?(file)
         filename = File.basename(file)
-        next if exclude.include?(filename) || file.index('bower_components')
+        next if exclude.include?(filename) || file.index('bower_components') || file.end_with?('.js')
         FileUtils.mkdir_p bindir unless Dir.exist?(bindir)
         path = File.split(file)[0].sub(@buildroot, '')
         puts "Linking #{File.join(path, filename)} to #{File.join(bindir, filename)}"
@@ -187,12 +214,8 @@ module Node2RPM
     end
 
     def binary?(file)
-      if (file.sub(@dest_dir, '') =~ %r{/bin/} || file.end_with?('.node')) \
+      (file.sub(@dest_dir, '') =~ %r{/bin/} || file.end_with?('.node')) \
           && File.file?(file) && File.executable?(file)
-        true
-      else
-        false
-      end
     end
 
     def find_gyp_dir

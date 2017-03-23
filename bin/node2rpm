@@ -98,7 +98,7 @@ puts 'Preparing bower_components.tgz...'
 Node2RPM::Bower.new.prepare_components(bower_pkgs)
 bower = OpenStruct.new
 bower.url = 'bower_components.tgz'
-sources << bower unless bower_pkg.empty?
+sources << bower unless bower_pkgs.empty?
 
 # write the specfile
 dest_specfile = File.join(options[:path], options[:name] + '.spec')
