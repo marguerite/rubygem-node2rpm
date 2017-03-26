@@ -2,7 +2,7 @@ require 'json'
 require 'ostruct'
 require 'curb'
 require 'nokogiri'
-require 'node-semver'
+require 'node_semver'
 require 'fileutils'
 
 module Node2RPM
@@ -56,7 +56,7 @@ module Node2RPM
         s.name = k
         url = lookup(k)
         fits = fit_versions(url + '/tags', v)
-        s.version = Semver.max_satisfying(fits, v)
+        s.version = NodeSemver.max_satisfying(fits, v)
         s.url = url + '/archive/' + s.version + '.tar.gz'
         structs << s
       end
@@ -80,7 +80,7 @@ module Node2RPM
       version_objs = html.xpath('//span[@class="tag-name"]')
       tmp = []
       # sometimes the tag is not numberic
-      version_objs.each { |v| tmp << v.text if v.text =~ /\d+\.\d+\.\d+/ && Semver.satisfies(v.text, range) }
+      version_objs.each { |v| tmp << v.text if v.text =~ /\d+\.\d+\.\d+/ && NodeSemver.satisfies(v.text, range) }
       pagelinks = html.xpath('//div[@class="pagination"]/a')
       return versions.concat(tmp) if pagelinks.empty?
       # with previous and next, always use the last one in array, which is next.

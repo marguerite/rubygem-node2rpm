@@ -1,4 +1,4 @@
-require 'node-semver'
+require 'node_semver'
 
 module Node2RPM
   class Exclusion
@@ -15,7 +15,7 @@ module Node2RPM
               result = true
               break
             end
-          elsif k == pkg && Semver.satisfies(version, v)
+          elsif k == pkg && NodeSemver.satisfies(version, v)
             result = true
             break
           end

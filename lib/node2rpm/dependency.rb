@@ -1,4 +1,4 @@
-require 'node-semver'
+require 'node_semver'
 
 module Node2RPM
   class Dependency
@@ -27,7 +27,7 @@ module Node2RPM
       return if arr.nil? || arr.empty?
       arr.each do |k, v|
         range = Node2RPM::History.new(k).all
-        version = Semver.max_satisfying(range, v)
+        version = NodeSemver.max_satisfying(range, v)
         if version.nil?
           raise Node2RPM::Exception, "#{@pkg}'s dependency #{k} " \
                 "has nil-matched version! Raw version range: #{v}. " \
