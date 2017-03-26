@@ -31,6 +31,12 @@ module Node2RPM
         mega[pkg] = { version: version, parent: parent,
                       parentversion: parentversion,
                       license: license, dependencies: {} }
+        unless dependencies.nil?
+          dependencies.each do |k, v|
+            generate(pkg: k, version: v, exclusion: exclusion, parent: pkg,
+                     parentversion: version, mega: mega)
+          end
+        end
       elsif Node2RPM::JSONObject.new(mega).include?(pkg, version)
         # This indicates we have at least two modules rely on the same
         # dependency. usually we keep the shortest path, so we put
@@ -62,6 +68,12 @@ module Node2RPM
                                                  parentversion: newparentversion,
                                                  license: license,
                                                  dependencies: {} }
+            unless dependencies.nil?
+              dependencies.each do |k, v|
+                generate(pkg: k, version: v, exclusion: exclusion, parent: pkg,
+                         parentversion: version, mega: mega)
+              end
+            end
           elsif Node2RPM::Parent.new(newparent, newparentversion, mega).walk(mega)[pkg][:version] != version
             Node2RPM::Parent.new(newparent, newparentversion, mega)
                             .walk(mega)[pkg + '@' + version] = { version: version,
@@ -69,6 +81,12 @@ module Node2RPM
                                                                  parentversion: newparentversion,
                                                                  license: license,
                                                                  dependencies: {} }
+            unless dependencies.nil?
+              dependencies.each do |k, v|
+                generate(pkg: k, version: v, exclusion: exclusion, parent: pkg,
+                         parentversion: version, mega: mega)
+              end
+            end
           end
         end
       else
@@ -79,13 +97,13 @@ module Node2RPM
           walker[pkg] = { version: version, parent: parent,
                           parentversion: parentversion,
                           license: license, dependencies: {} }
-        end
-      end
 
-      unless dependencies.nil?
-        dependencies.each do |k, v|
-          generate(pkg: k, version: v, exclusion: exclusion, parent: pkg,
-                   parentversion: version, mega: mega)
+          unless dependencies.nil?
+            dependencies.each do |k, v|
+              generate(pkg: k, version: v, exclusion: exclusion, parent: pkg,
+                       parentversion: version, mega: mega)
+            end
+          end
         end
       end
 
