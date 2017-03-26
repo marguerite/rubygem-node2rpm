@@ -10,6 +10,7 @@ module Node2RPM
       end
       @url = REGISTRY + pkg
       @uri = URI.parse(@url)
+      Dir.mkdir('/tmp/node2rpm') unless File.exist?('/tmp/node2rpm')
       @filename = File.join('/tmp/node2rpm', %r{.*\/(.*)}.match(@uri.path)[1])
     end
 
