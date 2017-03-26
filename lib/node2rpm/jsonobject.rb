@@ -34,7 +34,7 @@ module Node2RPM
       json = parse
       json.each do |j|
         # the name@version should be considered as include.
-        if j.name =~ /^#{pkg}(@\d.*)?/ && j.version == version
+        if j.name =~ /^#{pkg}(@\d.*)?$/ && j.version == version
           result = true
           break
         end
