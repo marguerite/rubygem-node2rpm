@@ -7,7 +7,6 @@ module Node2RPM
                  else
                    Node2RPM::History.new(@pkg).last
                  end
-      @license = Node2RPM::Attribute.create('license')
       @bower = Node2RPM::Bower.new
     end
 
@@ -24,7 +23,7 @@ module Node2RPM
       dependencies = Node2RPM::Dependency.new(pkg, version).dependencies
       Node2RPM::Logger.new("dependencies of #{pkg}-#{version}: #{dependencies}")
       dependencies = @bower.strip(pkg, version, dependencies)
-      license = @license.new.parse(pkg, version)
+      license = Node2RPM::Attr.new(pkg, version).license
       Node2RPM::Logger.new("license of #{pkg}: #{license}")
 
       if mega.empty?
