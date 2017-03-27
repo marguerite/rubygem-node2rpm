@@ -3,25 +3,19 @@ require 'node_semver'
 module Node2RPM
   class Exclusion
     def initialize(pkgs)
+      raise "the parameter can't be nil!" if pkgs.nil?
       @pkgs = pkgs
     end
 
     def exclude?(pkg, version = nil)
-      result = false
-      unless @pkgs.nil?
-        @pkgs.each do |k, v|
-          if version.nil?
-            if k == pkg
-              result = true
-              break
-            end
-          elsif k == pkg && NodeSemver.satisfies(version, v)
-            result = true
-            break
-          end
+      @pkgs.each do |k, v|
+        if version.nil?
+          return true if k == pkg
+        elsif k == pkg && NodeSemver.satisfies(version, v)
+          return true
         end
       end
-      result
+      false
     end
   end
 end

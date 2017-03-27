@@ -26,7 +26,7 @@ module Node2RPM
         # the name@version should be considered as include.
         return true if j.name =~ /^#{pkg}(@\d.*)?$/ && j.version == version
       end
-      return false
+      false
     end
   end
 end
