@@ -82,7 +82,7 @@ module Node2RPM
                                                                  dependencies: {} }
             unless dependencies.nil?
               dependencies.each do |k, v|
-                generate(pkg: k, version: v, exclusion: exclusion, parent: pkg,
+                generate(pkg: k, version: v, exclusion: exclusion, parent: pkg + '@' + version,
                          parentversion: version, mega: mega)
               end
             end
