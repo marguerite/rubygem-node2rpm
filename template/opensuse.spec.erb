@@ -26,9 +26,9 @@ Group:  Development/Languages/NodeJS
 <% i = 0 ; for s in spec.sources -%>
 Source<%= i %>:	<%= s.url %>
 <% i += 1 ; end -%>
-BuildRequires:  nodejs6
+BuildRequires:  nodejs
 BuildRequires:  nodejs-rpm-macros
-Requires: nodejs6
+Requires: nodejs
 BuildRoot:  %{_tmppath}/%{name}-%{version}-build
 
 %description
