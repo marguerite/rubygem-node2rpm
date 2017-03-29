@@ -1,3 +1,5 @@
+require 'rpmspec'
+
 module Node2RPM
   class System
     def initialize
@@ -26,7 +28,12 @@ module Node2RPM
     end
 
     def buildroot
-      Dir.glob(@root + '/BUILDROOT/*')[0]
+      # we need to create it ourselves
+      specfile = RPMSpec::Parser.new(Dir.glob(sourcedir + '/*.spec')[0]).parse
+      buildroot = @root + '/BUILDROOT/' + specfile.name + '-' + \
+                  specfile.version + '-' + specfile.release + '.' + arch
+      Dir.mkdir buildroot unless File.exist? buildroot
+      buildroot
     end
 
     def self.sitelib
@@ -39,6 +46,14 @@ module Node2RPM
       else
         sitelib
       end
+    end
+
+    def arch
+      # this is really ugly
+      io = IO.popen('rpm -qa filesystem')
+      arch = io.readline.match(/.*\.(.*)\n/)[1]
+      io.close
+      arch
     end
   end
 end
