@@ -66,33 +66,29 @@ module Node2RPM
           Node2RPM::Parent.new(oldparent, oldparentversion, mega).walk(mega).delete(pkg)
 
           if Node2RPM::Parent.new(newparent, newparentversion, mega).walk(mega)[pkg].nil?
-            Node2RPM::Parent.new(newparent, newparentversion, mega)
-                            .walk(mega)[pkg] = { version: version,
-                                                 parent: newparent,
-                                                 parentversion: newparentversion,
-                                                 license: license,
-                                                 dependencies: {} }
-            deps.call(pkg)
+            to_add = pkg
           elsif Node2RPM::Parent.new(newparent, newparentversion, mega).walk(mega)[pkg][:version] != version
+            to_add = pkg + '@' + version
+          end
+
+          unless to_add.nil?
             Node2RPM::Parent.new(newparent, newparentversion, mega)
-                            .walk(mega)[pkg + '@' + version] = { version: version,
-                                                                 parent: newparent,
-                                                                 parentversion: newparentversion,
-                                                                 license: license,
-                                                                 dependencies: {} }
-            deps.call(pkg + '@' + version)
+                            .walk(mega)[to_add] = { version: version,
+                                                    parent: newparent,
+                                                    parentversion: newparentversion,
+                                                    license: license,
+                                                    dependencies: {} }
+            deps.call(to_add)
           end
         end
-      else
+      elsif !Node2RPM::Exclusion.new(exclusion).exclude?(pkg, version)
         # occur the first time, so apply exclusion here.
         # we need to escape for some dependencies to allow package split.
-        unless Node2RPM::Exclusion.new(exclusion).exclude?(pkg, version)
-          walker = Node2RPM::Parent.new(parent, parentversion, mega).walk(mega)
-          walker[pkg] = { version: version, parent: parent,
-                          parentversion: parentversion,
-                          license: license, dependencies: {} }
-          deps.call(pkg)
-        end
+        walker = Node2RPM::Parent.new(parent, parentversion, mega).walk(mega)
+        walker[pkg] = { version: version, parent: parent,
+                        parentversion: parentversion,
+                        license: license, dependencies: {} }
+        deps.call(pkg)
       end
 
       [mega, @bower.status]
