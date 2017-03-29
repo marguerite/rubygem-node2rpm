@@ -170,7 +170,7 @@ module Node2RPM
       real_name = File.basename(real_file)
       dest_name = File.basename(link)
       target_path = File.split(File.expand_path(dest + '/' + File.readlink(link)))[0].sub(@buildroot, '')
-      target = File.join(target_path, real_name).gsub(/-\d+\.\d+\.\d+/, '')
+      target = File.join(target_path, real_name).gsub(%r{-\d+[^/]+}, '')
       puts "Creating symlink from #{target} to #{File.join(dest, dest_name)}"
       FileUtils.ln_sf target, File.join(dest, dest_name)
     end
