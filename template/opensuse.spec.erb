@@ -26,6 +26,7 @@ Group:  Development/Languages/NodeJS
 <% i = 0 ; for s in spec.sources -%>
 Source<%= i %>:	<%= s.url %>
 <% i += 1 ; end -%>
+BuildRequires:  fdupes
 BuildRequires:  nodejs
 BuildRequires:  nodejs-rpm-macros
 Requires: nodejs
@@ -46,6 +47,8 @@ BuildRoot:  %{_tmppath}/%{name}-%{version}-build
 %install
 %nodejs_install
 %nodejs_filelist
+
+%fdupes %{buildroot}
 
 %check
 %nodejs_check
