@@ -12,7 +12,7 @@ module Node2RPM
         obj.name = k
         obj.version = v[:version]
         obj.parent = v[:parent]
-        obj.parentversion = v[:parentversion]
+        obj.parver = v[:parver]
         obj.dependencies = v[:dependencies].empty? ? nil : v[:dependencies].keys
         json << obj
         parse(v[:dependencies], json) unless obj.dependencies.nil?

@@ -3,6 +3,7 @@ module Node2RPM
     def initialize(pkg, version, list)
       @pkg = pkg
       @version = version
+      @list = list
       @json = Node2RPM::JSONObject.new(list).parse
     end
 
@@ -13,20 +14,20 @@ module Node2RPM
         # same as name.
         if j.name =~ /^#{pkg}(@\d.*)?$/ && j.version == version
           arr << j.parent
-          parents(j.parent, j.parentversion, arr)
+          parents(j.parent, j.parver, arr)
         end
       end
       arr.reverse
     end
 
-    def walk(hash)
+    def walk
       arr = parents
       if arr.size > 1
         (1..(arr.size - 1)).each do |i|
-          hash = hash[arr[i]][:dependencies]
+          @list = @list[arr[i]][:dependencies]
         end
       end
-      hash[@pkg][:dependencies]
+      @list[@pkg][:dependencies]
     end
   end
 end

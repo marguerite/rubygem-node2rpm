@@ -13,12 +13,12 @@ module Node2RPM
     def generate(options)
       # extract options hash
       parent = options.fetch(:parent, '_root')
-      parentversion = options.fetch(:parentversion, '0.0.0')
+      parver = options.fetch(:parver, '0.0.0')
       exclusion = options.fetch(:exclusion, {})
       pkg = options.fetch(:pkg, @pkg)
       version = options.fetch(:version, @version)
       mega = options.fetch(:mega, {})
-      Node2RPM::Logger.new("processing #{pkg},#{version},#{parent},#{parentversion}")
+      Node2RPM::Logger.new("processing #{pkg},#{version},#{parent},#{parver}")
 
       dependencies = Node2RPM::Dependency.new(pkg, version).dependencies
       Node2RPM::Logger.new("dependencies of #{pkg}-#{version}: #{dependencies}")
@@ -30,63 +30,59 @@ module Node2RPM
         unless dependencies.nil?
           dependencies.each do |k, v|
             generate(pkg: k, version: v, exclusion: exclusion,
-                     parent: pv, parentversion: version, mega: mega)
+                     parent: pv, parver: version, mega: mega)
           end
         end
         return mega
       end
 
       if mega.empty?
-        mega[pkg] = { version: version, parent: parent,
-                      parentversion: parentversion,
+        mega[pkg] = { version: version, parent: parent, parver: parver,
                       license: license, dependencies: {} }
         deps.call(pkg)
       elsif Node2RPM::JSONObject.new(mega).include?(pkg, version)
         # This indicates we have at least two modules rely on the same
         # dependency. usually we keep the shortest path, so we put
         # this dependency under the same parent of those two modules:
-        # parents_old finds the location of the existing one;
-        # parents_new uses the location of the parent of the pkg to be inserted,
+        # par_old finds the location of the existing one;
+        # par_new uses the location of the parent of the pkg to be inserted,
         # because the new pkg hasn't been inserted, no way to use itself.
-        parents_old = Node2RPM::Parent.new(pkg, version, mega).parents
-        parents_new = Node2RPM::Parent.new(parent, parentversion, mega).parents
-        parents_new << parent # form parents for the same pkg
-        intersected = intersect(parents_old, parents_new)
+        par_old = Node2RPM::Parent.new(pkg, version, mega).parents
+        par_new = Node2RPM::Parent.new(parent, parver, mega).parents
+        par_new << parent # form parents for the same pkg
+        intersected = intersect(par_old, par_new)
 
-        oldparent = parents_old[-1]
-        newparent = intersected[-1]
-        oldparentversion = get_version(parents_old, mega)
-        newparentversion = get_version(intersected, mega)
+        oldpar = par_old[-1]
+        newpar = intersected[-1]
+        oldparver = get_version(par_old, mega)
+        newparver = get_version(intersected, mega)
 
         # we need to insert the new one and delete the old one.
         # unless: 1. already been processed and moved.
         #         2. no need to move at all
-        unless intersected.empty? || intersected == parents_old
-          Node2RPM::Logger.new("moving from #{parents_old} to #{intersected}")
-          Node2RPM::Parent.new(oldparent, oldparentversion, mega).walk(mega).delete(pkg)
+        unless intersected.empty? || intersected == par_old
+          Node2RPM::Logger.new("moving from #{par_old} to #{intersected}")
+          Node2RPM::Parent.new(oldpar, oldparver, mega).walk.delete(pkg)
 
-          if Node2RPM::Parent.new(newparent, newparentversion, mega).walk(mega)[pkg].nil?
+          if Node2RPM::Parent.new(newpar, newparver, mega).walk[pkg].nil?
             to_add = pkg
-          elsif Node2RPM::Parent.new(newparent, newparentversion, mega).walk(mega)[pkg][:version] != version
+          elsif Node2RPM::Parent.new(newpar, newparver, mega).walk[pkg][:version] != version
             to_add = pkg + '@' + version
           end
 
           unless to_add.nil?
-            Node2RPM::Parent.new(newparent, newparentversion, mega)
-                            .walk(mega)[to_add] = { version: version,
-                                                    parent: newparent,
-                                                    parentversion: newparentversion,
-                                                    license: license,
-                                                    dependencies: {} }
+            Node2RPM::Parent.new(newpar, newparver, mega)
+                            .walk[to_add] = { version: version, parent: newpar,
+                                              parver: newparver, license: license,
+                                              dependencies: {} }
             deps.call(to_add)
           end
         end
       elsif !Node2RPM::Exclusion.new(exclusion).exclude?(pkg, version)
         # occur the first time, so apply exclusion here.
         # we need to escape for some dependencies to allow package split.
-        walker = Node2RPM::Parent.new(parent, parentversion, mega).walk(mega)
-        walker[pkg] = { version: version, parent: parent,
-                        parentversion: parentversion,
+        walker = Node2RPM::Parent.new(parent, parver, mega).walk
+        walker[pkg] = { version: version, parent: parent, parver: parver,
                         license: license, dependencies: {} }
         deps.call(pkg)
       end
