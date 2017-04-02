@@ -86,9 +86,9 @@ module Node2RPM
       open(File.join(@builddir, @pkg + '.list'), 'w:UTF-8') do |f|
         Dir.glob(@buildroot + '/**/*') do |i|
           if File.directory?(i)
-            next if f == File.join(@buildroot, '/usr') ||
-                    File.join(@buildroot, '/usr/lib') ||
-                    @dest_dir
+            next if [File.join(@buildroot, '/usr'),
+                     File.join(@buildroot, '/usr/lib'),
+                     @dest_dir].include?(i)
             f.write "%dir\s" + i.gsub(@buildroot, '') + "\n"
           else
             f.write i.gsub(@buildroot, '') + "\n"
@@ -177,7 +177,7 @@ module Node2RPM
 
     # drop the unneeded file
     def file_filter(file)
-      arr = file.sub(@dest_dir, '').split('/').reject { |x| x.empty? }[1..-1]
+      arr = file.sub(@dest_dir, '').split('/').reject(&:empty?)[1..-1]
       r = /^\..*$ | .*~$ |
             \.(bat|cmd|orig|bak|sh|sln|njsproj|exe)$ |
             Makefile | example(s)?(\.js)?$ | benchmark(s)?(\.js)?$ |
