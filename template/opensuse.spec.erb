@@ -1,5 +1,5 @@
 #
-# spec file for package nodejs-<%= spec.name %>
+# spec file for package <%= spec.name %>
 #
 # Copyright (c) <%= spec.year %> SUSE LINUX GmbH, Nuernberg, Germany.
 #
@@ -55,5 +55,7 @@ BuildRoot:  %{_tmppath}/%{name}-%{version}-build
 
 %files -f %{name}.list
 %defattr(-,root,root)
+# workaround: /usr/lib/node_modules will be owned by nodejs6
+%dir %{_prefix}/lib/node_modules
 
 %changelog
