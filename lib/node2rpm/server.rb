@@ -87,15 +87,18 @@ module Node2RPM
     end
 
     def filelist
+      puts "Writing files list to #{File.join(@builddir, @pkg + '.list')}"
       open(File.join(@builddir, @pkg + '.list'), 'w:UTF-8') do |f|
         Dir.glob(@buildroot + '/**/*') do |i|
           if File.directory?(i)
             next if [File.join(@buildroot, '/usr'),
                      File.join(@buildroot, '/usr/lib'),
                      @dest_dir].include?(i)
-            f.write "%dir\s" + i.gsub(@buildroot, '') + "\n"
+            puts "Writing directory #{i.sub!(@buildroot, '')}"
+            f.write "%dir\s" + i + "\n"
           else
-            f.write i.gsub(@buildroot, '') + "\n"
+            puts "Writing file #{i.sub!(@buildroot, '')}"
+            f.write i + "\n"
           end
         end
       end
