@@ -128,7 +128,7 @@ module Node2RPM
           puts "Creating #{dest}"
           FileUtils.mkdir_p dest
         end
-        next if v['dependencies'].empty?
+        next if v['dependencies'].nil? || v['dependencies'].empty?
         v['dependencies'].each do |m, n|
           newjson = { m => n }
           recursive_mkdir(newjson, File.join(dest, 'node_modules'))
