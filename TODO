@@ -5,6 +5,5 @@
 * rspec unit tests
 * think about how to handle recursive bower.json
 * bundleDependencies in package.json
-* don't rely on mod_name
 * optionalDependencies
 * devDependencies

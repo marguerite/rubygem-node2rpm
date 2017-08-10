@@ -11,7 +11,11 @@ module Node2RPM
       @dest_dir = File.join(@buildroot, @sitelib)
       @bower_dir = File.join(@sourcedir, 'bower_components')
       @specfile = open(Dir.glob(@sourcedir + '/*.spec')[0], 'r:UTF-8').read
-      @pkg = @specfile.match(/mod_name(\s|\t)+(.*?)\n/m)[2]
+      @pkg = if @specfile =~ /mod_name(\s|\t)+(.*?)\n/m
+               Regexp.last_match(2)
+             else
+               @specfile.match(/Name:(\s|\t)+(.*?)\n/m)[2]
+             end
       json ||= Dir.glob(@sourcedir + '/*.json')[0]
       # json still nil means no .json in sourcedir, the packager
       # chose the traditional way to package separated modules.
