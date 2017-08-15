@@ -7,3 +7,5 @@
 * bundleDependencies in package.json
 * optionalDependencies
 * devDependencies
+* noarch package !important
+* bower in provides/requires
