@@ -38,6 +38,7 @@ module Node2RPM
         dest = File.join(@sourcedir, name)
         FileUtils.mv source, dest if File.exist?(source)
       end
+      rename_windows_file(@sourcedir)
     end
 
     def mkdir
@@ -113,6 +114,15 @@ module Node2RPM
     end
 
     private
+
+    # rename files created under windows with space in their filenames
+    def rename_windows_file(dir)
+      Dir.glob(dir + '/**/*') do |file|
+        next unless File.basename(file).index(/\s+/)
+	path = File.split(file)[0]
+        FileUtils.mv file, path + File.basename(file).gsub(/\s+/, '_')
+      end
+    end
 
     # manual requires and its dependencies should be excluded
     # from the automatic dependency handling
