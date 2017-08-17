@@ -9,13 +9,19 @@ module Node2RPM
       @buildroot = Node2RPM::System.buildroot
       @sitelib = Node2RPM::System.sitelib
       @dest_dir = File.join(@buildroot, @sitelib)
-      @bower_dir = File.join(@sourcedir, 'bower_components')
-      @specfile = open(Dir.glob(@sourcedir + '/*.spec')[0], 'r:UTF-8').read
-      @pkg = if @specfile =~ /mod_name(\s|\t)+(.*?)\n/m
-               Regexp.last_match(2)
-             else
-               @specfile.match(/Name:(\s|\t)+(.*?)\n/m)[2]
-             end
+      @specfile = RPMSpec::Parser.new(Dir.glob(@sourcedir + '/*.spec')[0]).parse
+      @pkg = @specfile.name + '-' + @specfile.version
+      @bower_dir = if File.exist?(@sourcedir + '/bower_components/' + @pkg)
+                     @sourcedir + '/bower_components/' + @pkg
+                   else
+                     @sourcedir + '/bower_components'
+                   end
+      @bower_dest = if File.exist?(@dest_dir + '/' + @pkg +
+                                   '/bower_components/' + @pkg)
+                      @dest_dir + '/' + @pkg + '/bower_components/' + @pkg
+                    else
+                      @dest_dir + '/' + @pkg + '/bower_components'
+                    end
       json ||= Dir.glob(@sourcedir + '/*.json')[0]
       # json still nil means no .json in sourcedir, the packager
       # chose the traditional way to package separated modules.
@@ -24,7 +30,7 @@ module Node2RPM
 
     def prep
       # unpack the tarballs
-      Dir.glob(@sourcedir + '/*.tgz') do |tar|
+      Dir.glob(@sourcedir + '/*.*[z,2]') do |tar|
         name = File.basename(tar, File.extname(tar))
         puts "Unpacking #{tar}"
         IO.popen("tar --warning=none --no-same-owner --no-same-permissions -xf #{tar} -C #{@sourcedir}").close
@@ -36,16 +42,18 @@ module Node2RPM
 
     def mkdir
       if @json.nil?
+        puts "Creating #{@dest_dir}/#{@pkg}"
         FileUtils.mkdir_p File.join(@dest_dir, @pkg)
       else
         recursive_mkdir(@json, @dest_dir)
       end
 
       return unless bower?
+      puts "Creating #{@bower_dest}"
+      FileUtils.mkdir_p @bower_dest
       Dir.glob(@bower_dir + '/*') do |dir|
-        dest = Dir.glob(@dest_dir + '/**/' + File.basename(dir))[0]
-        puts "Creating #{File.join(dest, 'bower_components')}"
-        Dir.mkdir File.join(dest, 'bower_components')
+        puts "Creating #{@bower_dest}/#{File.basename(dir)}"
+        Dir.mkdir File.join(@bower_dest, File.basename(dir))
       end
     end
 
@@ -65,8 +73,8 @@ module Node2RPM
         recursive_copy(File.join(@sourcedir, filename), dir)
       end
       Dir.glob(@bower_dir + '/*') do |dir|
-        dest = Dir.glob(@dest_dir + '/**/' + File.basename(dir))[0]
-        recursive_copy(dir, dest + '/bower_components')
+        dest = File.join(@bower_dest, File.basename(dir))
+        recursive_copy(dir, dest)
       end
       recursive_rename
       symlink
@@ -109,13 +117,11 @@ module Node2RPM
     # manual requires and its dependencies should be excluded
     # from the automatic dependency handling
     def manual_requires
-      require_lines = @specfile.scan(/^Requires:.*npm\(.*$/)
-      return if require_lines.empty?
+      return if @specfile.requires.nil?
       m = {}
-      require_lines.each do |i|
-        r = i.match(/^Requires:.*npm\((.*)\)(.*\d+\..*)?$/)
-        name = r[1]
-        version = r[2]
+      @specfile.requires.each do |s|
+        name = s.name.match(/^npm\((.*)\)$/)[1]
+        version = s.version
         m[name] = version
       end
       m
@@ -177,7 +183,7 @@ module Node2RPM
       real_name = File.basename(real_file)
       dest_name = File.basename(link)
       target_path = File.split(File.expand_path(dest + '/' + File.readlink(link)))[0].sub(@buildroot, '')
-      target = File.join(target_path, real_name).gsub(%r{-\d+[^/]+}, '')
+      target = File.join(target_path, real_name).gsub(%r{-(v)?\d+[^/]+}, '')
       puts "Creating symlink from #{target} to #{File.join(dest, dest_name)}"
       FileUtils.ln_sf target, File.join(dest, dest_name)
     end
@@ -260,7 +266,7 @@ module Node2RPM
     def clean_empty_directories
       Dir.glob(@dest_dir + '/**/{*,.*}')
          .select! { |d| File.directory?(d) }
-         .select { |d| (Dir.entries(d) - %w(. ..)).empty? }
+         .select { |d| (Dir.entries(d) - %w[. ..]).empty? }
          .each do |d|
            puts "Dropping empty directory #{d}..."
            Dir.rmdir d
@@ -268,7 +274,7 @@ module Node2RPM
     end
 
     def bower?
-      File.exist?(@bower_dir + '.tgz')
+      Dir.glob(@sourcedir + '/bower_components.*').map! { |d| File.exist?(d) }.include?(true)
     end
   end
 end
