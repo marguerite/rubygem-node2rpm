@@ -1,5 +1,7 @@
 require 'json'
 require 'fileutils'
+require 'rpmspec'
+require 'node_semver'
 
 module Node2RPM
   class Server
@@ -29,16 +31,13 @@ module Node2RPM
     end
 
     def prep
-      # unpack the tarballs
-      Dir.glob(@sourcedir + '/*.*[z,2]') do |tar|
-        name = File.basename(tar, File.extname(tar))
-        puts "Unpacking #{tar}"
-        IO.popen("tar --warning=none --no-same-owner --no-same-permissions -xf #{tar} -C #{@sourcedir}").close
-        source = File.join(@sourcedir, 'package')
-        dest = File.join(@sourcedir, name)
-        FileUtils.mv source, dest if File.exist?(source)
-      end
-      rename_windows_file(@sourcedir)
+      puts "Checking .json's consistency"
+      check_json_consistency
+      recursive_untar(@sourcedir)
+      puts "Finding and renaming files created under Windows"
+      rename_windows_file
+      puts "Checking bower_components' consistency"
+      check_bower_consistency
     end
 
     def mkdir
@@ -115,12 +114,162 @@ module Node2RPM
 
     private
 
+    # check if the pkg version in json is the same as the specfile or the source
+    def check_json_consistency
+      source = Dir.glob(@sourcedir + '/' + @specfile.name + '-*.*[z,2]')[0]
+      source_name = File.basename(source, File.extname(source))
+      source_version = source_name.match(%r{^.*?-v?(\d+[^/]+)$})[1]
+      json_version = @json[@specfile.name]['version']
+      if json_version != (source_version || @specfile.version)
+        raise Node2RPM::Exception, "[ERR]The version in .json doesn't match the one
+                                       in specfile or of the source tarball. please
+                                       check if you run node2rpm correctly"
+      end
+    end
+
+    # recursively untar the tarballs in RPM sources directory
+    def recursive_untar(dir)
+      Dir.glob(dir + '/*.*[z,2]') do |tar|
+        tarname = File.basename(tar, File.extname(tar))
+        # if the dir contains only one file
+        file_num = Dir.glob(dir + '/*').size
+        puts "Untaring #{tar}"
+        unpacked_tardir = unpack(tar, dir, tarname)
+        tardir = guess_tardir(unpacked_tardir, tarname, dir, file_num)
+        dest = post_process_tardir(tardir, unpacked_tardir, dir, file_num)
+        tars = Dir.glob(dest + '/**/*.*[z,2]')
+        next if tars.empty?
+        tars.each { |t| recursive_untar(File.split(t)[0]) }
+      end
+    end
+
+    # unpack a tarball and return its unpacked directory name
+    def unpack(tar, dir, tarname)
+      before = Dir.glob(dir + '/*')
+      cmd = 'tar -xf ' + tar + ' -C ' + dir + ' --warning=none ' \
+            '--no-same-owner --no-same-permissions'
+      IO.popen(cmd).close
+      # if it unpacks to 'package', rename to the tarball's name
+      rename_npm_registry_package(tarname, dir)
+      after = Dir.glob(dir + '/*')
+      File.basename((after - before)[0])
+    end
+
+    # packages from npm registry usually unpack to the name 'package'
+    # in recursively unpacking, we have to free such namespace
+    def rename_npm_registry_package(name, dir)
+      source = File.join(dir, 'package')
+      dest = File.join(dir, name)
+      if File.exist?(source)
+        puts "Renaming #{source} to #{dest}"
+        FileUtils.mv source, dest
+      end
+    end
+
+    def correct_unpacked_tardir(dir)
+      # bower.json is always downcased
+      tardir = dir.dup.downcase
+      # escape common suffix
+      m = tardir.match(%r{^.*?(-(bower|dist)).*$})
+      tardir = tardir.gsub(m[1], '') unless m.nil?
+      tardir
+    end
+
+    def guess_tardir(unpacked, tarname, parent, num)
+      unpacked = correct_unpacked_tardir(unpacked)
+      guessed = guess(unpacked, tarname)
+      if num == 1
+        guess(guessed, parent)
+      else
+        # the parent is non of our business
+        guessed
+      end
+    end
+
+    def guess(unpacked, tarname)
+      # escape bower_components.tgz
+      return unpacked if unpacked == tarname
+      regex = %r{^(.*?)?-?v?(\d+[^/]+)$}
+      u = unpacked.match(regex)
+      t = tarname.match(regex)
+      if u.nil?
+        # unpacked has no version, then it must have a name
+        if t.nil?
+          raise Node2RPM::Exception, unpacked + " doesn't have version"
+        else
+          return unpacked + '-' + t[2]
+        end
+      elsif u[1].nil?
+        # unpacked has a version only
+        if t.nil?
+          return tarname + '-' + u[2]
+        elsif t[1].nil?
+          raise Node2RPM::Exception, unpacked + " doesn't have name"
+        else
+          return t[1] + '-' + u[2]
+        end
+      else
+        return unpacked
+      end
+    end
+
+    def post_process_tardir(tardir, unpacked, dir, filenum)
+      dest = File.join(dir, tardir)
+      source = File.join(dir, unpacked)
+      unless File.exist?(dest)
+        puts "Renaming #{source} to #{dest}"
+        FileUtils.mv source, dest
+      end
+      return dest unless filenum == 1
+      path = File.split(dir)[0]
+      new_dest = File.join(path, tardir)
+      puts "Renaming #{source} to #{new_dest}"
+      FileUtils.mv dest, new_dest + '.new'
+      FileUtils.rm_rf dir
+      FileUtils.mv new_dest + '.new', new_dest
+      new_dest
+    end
+
     # rename files created under windows with space in their filenames
-    def rename_windows_file(dir)
-      Dir.glob(dir + '/**/*') do |file|
+    def rename_windows_file
+      Dir.glob(@sourcedir + '/**/*') do |file|
         next unless File.basename(file).index(/\s+/)
-	path = File.split(file)[0]
+        path = File.split(file)[0]
+        puts "Renaming " + file
         FileUtils.mv file, path + File.basename(file).gsub(/\s+/, '_')
+      end
+    end
+
+    # check if the bower dependencies in bower.json are the same with the ones
+    # in bower_components
+    def check_bower_consistency
+      components = {}
+      Dir.glob(@bower_dir + '/*') do |f|
+        m = File.basename(f).match(%r{^(.*?)-v?(\d+[^/]+)$})
+        if m.nil?
+          components[File.basename(f)] = nil
+        else
+          components[m[1]] = m[2]
+        end
+      end
+      Dir.glob(@sourcedir + '/**/bower.json') do |file|
+        json = JSON.parse(open(file, 'r:UTF-8').read)
+        next if json['dependencies'].nil? || json['dependencies'].empty?
+        wrong_keys = []
+        wrong_versions = {}
+        json['dependencies'].each do |k, v|
+          if components.keys.include?(k)
+            wrong_versions[k] = [components[k], v] unless components[k].nil? || NodeSemver.satisfies(components[k], v)
+          else
+            wrong_keys << k
+          end
+        end
+        unless wrong_keys.empty? && wrong_versions.empty?
+          puts "Mis-matched keys: #{wrong_keys}"
+          puts "Mis-matched versions: #{wrong_versions}"
+          raise Node2RPM::Exception, "The bower_components' content doesn't" +
+                'match the requirement of ' + file
+        end
       end
     end
 
@@ -193,7 +342,7 @@ module Node2RPM
       real_name = File.basename(real_file)
       dest_name = File.basename(link)
       target_path = File.split(File.expand_path(dest + '/' + File.readlink(link)))[0].sub(@buildroot, '')
-      target = File.join(target_path, real_name).gsub(%r{-(v)?\d+[^/]+}, '')
+      target = File.join(target_path, real_name).gsub(%r{-v?\d+[^/]+}, '')
       puts "Creating symlink from #{target} to #{File.join(dest, dest_name)}"
       FileUtils.ln_sf target, File.join(dest, dest_name)
     end
@@ -215,8 +364,8 @@ module Node2RPM
     def recursive_rename
       Dir.glob(@dest_dir + '/**/*').sort { |x| x.size }.each do |file|
         filename = File.basename(file)
-        next unless File.directory?(file) && filename =~ /-(v)?\d+\.\d+/
-        unversioned = filename.match(/(.*?)-(v)?\d+\.\d+.*/)[1]
+        next unless File.directory?(file) && filename =~ %r{-v?\d+[^/]+$}
+        unversioned = filename.match(%r{^(.*?)-v?\d+[^/]+$})[1]
         path = File.split(file)[0].sub(@dest_dir, '')
         puts "Renaming #{file} to #{File.join(@dest_dir + path, unversioned)}"
         FileUtils.mv file, File.join(@dest_dir + path, unversioned)
