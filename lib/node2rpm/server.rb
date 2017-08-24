@@ -116,16 +116,47 @@ module Node2RPM
 
     # check if the pkg version in json is the same as the specfile or the source
     def check_json_consistency
-      source = Dir.glob(@sourcedir + '/' + @specfile.name +
-                        '-*.{gz,tgz,bz2,xz}')[0]
-      source_name = File.basename(source, File.extname(source))
-      source_version = source_name.match(%r{^.*?-v?(\d+[^/]+)$})[1]
-      json_version = @json[@specfile.name]['version']
-      if json_version != (source_version || @specfile.version)
-        raise Node2RPM::Exception, "[ERR]The version in .json doesn't match the one
-                                       in specfile or of the source tarball. please
-                                       check if you run node2rpm correctly"
+      source = Dir.glob(@sourcedir + '/*.{gz,tgz,bz2,xz}')
+                  .map { |i| File.basename(i, File.extname(i)) }
+                  .reject { |j| j == "bower_components" }
+      source = source_matrix(source)
+      json = flatten_json(@json)
+      json.each do |k, v|
+        if source.key?(k)
+          if source[k] == v
+            if k == @specfile.name && v != @specfile.version
+              raise Node2RPM::Exception, "[ERR]The #{k}'s version #{v} doesn't match" +
+                                         " the specfile's version #{@specfile.version}"
+            else
+              puts "Passed: #{k}"
+            end
+          else
+            raise Node2RPM::Exception, "[ERR]The #{k}'s version #{v} doesn't match" +
+                                       " the source's version #{source[k]}."
+          end
+        else
+          raise Node2RPM::Exception, "[ERR]The key in .json #{k} wasn't found in the sources"
+        end
       end
+    end
+
+    def source_matrix(source)
+      matrix = {}
+      source.each do |i|
+        m = i.match(%r{^(.*?)-v?(\d+[^/]+)$})
+        matrix[m[1]] = m[2]
+      end
+      matrix
+    end
+
+    def flatten_json(json, flattened = {})
+      json.each do |k, v|
+        flattened[k] = v['version']
+        unless v['dependencies'].nil? || v['dependencies'].empty?
+          flatten_json(v['dependencies'], flattened)
+        end
+      end
+      flattened
     end
 
     # recursively untar the tarballs in RPM sources directory
@@ -283,8 +314,8 @@ module Node2RPM
         unless wrong_keys.empty? && wrong_versions.empty?
           puts "Mis-matched keys: #{wrong_keys}"
           puts "Mis-matched versions: #{wrong_versions}"
-          raise Node2RPM::Exception, "The bower_components' content doesn't" +
-                'match the requirement of ' + file
+          raise Node2RPM::Exception, "bower_components doesn't match " +
+                                     file
         end
       end
     end

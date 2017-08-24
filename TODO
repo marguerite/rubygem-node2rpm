@@ -9,5 +9,6 @@
 * devDependencies
 * noarch package !important
 * bower in provides
-* [server]check json consistency for all the modules instead of just the main module
 * i386 buildroot are treated as i586
+# FIXME!!!
+* [json consistency]there may be two versioned tarballs and two versioned dependencies in the same json
