@@ -50,8 +50,8 @@ module Node2RPM
 
     def arch
       # this is really ugly
-      io = IO.popen('rpm -qa filesystem')
-      arch = io.readline.match(/.*\.(.*)\n/)[1]
+      io = IO.popen('uname -m')
+      arch = io.readline.strip!
       io.close
       arch
     end

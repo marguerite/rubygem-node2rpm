@@ -116,7 +116,8 @@ module Node2RPM
 
     # check if the pkg version in json is the same as the specfile or the source
     def check_json_consistency
-      source = Dir.glob(@sourcedir + '/' + @specfile.name + '-*.*[z,2]')[0]
+      source = Dir.glob(@sourcedir + '/' + @specfile.name +
+                        '-*.{gz,tgz,bz2,xz}')[0]
       source_name = File.basename(source, File.extname(source))
       source_version = source_name.match(%r{^.*?-v?(\d+[^/]+)$})[1]
       json_version = @json[@specfile.name]['version']
@@ -129,15 +130,17 @@ module Node2RPM
 
     # recursively untar the tarballs in RPM sources directory
     def recursive_untar(dir)
-      Dir.glob(dir + '/*.*[z,2]') do |tar|
+      Dir.glob(dir + '/*.{gz,tgz,bz2,xz}') do |tar|
         tarname = File.basename(tar, File.extname(tar))
         # if the dir contains only one file
         file_num = Dir.glob(dir + '/*').size
         puts "Untaring #{tar}"
         unpacked_tardir = unpack(tar, dir, tarname)
-        tardir = guess_tardir(unpacked_tardir, tarname, dir, file_num)
-        dest = post_process_tardir(tardir, unpacked_tardir, dir, file_num)
-        tars = Dir.glob(dest + '/**/*.*[z,2]')
+        tardir = guess_tardir(unpacked_tardir, tarname,
+                              File.basename(dir), file_num)
+        dest = post_process_tardir(tardir, unpacked_tardir,
+                                   dir, file_num)
+        tars = Dir.glob(dest + '/**/*.{gz,tgz,bz2,xz}')
         next if tars.empty?
         tars.each { |t| recursive_untar(File.split(t)[0]) }
       end
@@ -179,7 +182,8 @@ module Node2RPM
       unpacked = correct_unpacked_tardir(unpacked)
       guessed = guess(unpacked, tarname)
       if num == 1
-        guess(guessed, parent)
+        name = fullname(guessed, parent)
+        guess(name, parent)
       else
         # the parent is non of our business
         guessed
@@ -213,14 +217,26 @@ module Node2RPM
       end
     end
 
-    def post_process_tardir(tardir, unpacked, dir, filenum)
+    # eonasdan-bootstrap-datetimepicker vs. bootstrap-datetimepicker
+    def fullname(name, parent)
+      regex = %r{^(.*?)-v?(\d+[^/]+)$}
+      parent = Regexp.last_match(1) if parent =~ regex
+      m = name.match(regex)
+      if parent.index(m[1])
+        parent + '-' + m[2]
+      else
+        name
+      end
+    end
+
+    def post_process_tardir(tardir, unpacked, dir, num)
       dest = File.join(dir, tardir)
       source = File.join(dir, unpacked)
       unless File.exist?(dest)
         puts "Renaming #{source} to #{dest}"
         FileUtils.mv source, dest
       end
-      return dest unless filenum == 1
+      return dest unless num == 1
       path = File.split(dir)[0]
       new_dest = File.join(path, tardir)
       puts "Renaming #{source} to #{new_dest}"
