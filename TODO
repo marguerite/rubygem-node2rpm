@@ -10,5 +10,3 @@
 * noarch package !important
 * bower in provides
 * i386 buildroot are treated as i586
-# FIXME!!!
-* [json consistency]there may be two versioned tarballs and two versioned dependencies in the same json

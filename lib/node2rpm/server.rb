@@ -121,37 +121,53 @@ module Node2RPM
                   .reject { |j| j == "bower_components" }
       source = source_matrix(source)
       json = flatten_json(@json)
+      wrong_keys = []
+      wrong_versions = {}
       json.each do |k, v|
         if source.key?(k)
-          if source[k] == v
-            if k == @specfile.name && v != @specfile.version
-              raise Node2RPM::Exception, "[ERR]The #{k}'s version #{v} doesn't match" +
-                                         " the specfile's version #{@specfile.version}"
+          diff = v - source[k]
+          if diff.empty?
+            if k == @specfile.name && !v.include?(@specfile.version)
+              puts "Failed: #{k}, #{@specfile.version} in specfile"
+              wrong_versions[k] = @specfile.version
             else
               puts "Passed: #{k}"
             end
           else
-            raise Node2RPM::Exception, "[ERR]The #{k}'s version #{v} doesn't match" +
-                                       " the source's version #{source[k]}."
+            puts "Failed: #{k}, #{diff}"
+            wrong_versions[k] = diff
           end
         else
-          raise Node2RPM::Exception, "[ERR]The key in .json #{k} wasn't found in the sources"
+          puts "Failed: #{k}"
+          wrong_keys << k
         end
       end
+      return if wrong_keys.empty? && wrong_versions.empty?
+      raise Node2RPM::Exception, "The following keys/versions were" +
+            " not found in the sources:\nkeys: #{wrong_keys}\n" +
+            "versions: #{wrong_versions}"
     end
 
     def source_matrix(source)
       matrix = {}
       source.each do |i|
         m = i.match(%r{^(.*?)-v?(\d+[^/]+)$})
-        matrix[m[1]] = m[2]
+        if matrix.key?(m[1])
+          matrix[m[1]] << m[2]
+        else
+          matrix[m[1]] = [m[2]]
+        end
       end
       matrix
     end
 
     def flatten_json(json, flattened = {})
       json.each do |k, v|
-        flattened[k] = v['version']
+        if flattened.key?(k)
+          flattened[k] << v['version']
+        else
+          flattened[k] = [v['version']]
+        end
         unless v['dependencies'].nil? || v['dependencies'].empty?
           flatten_json(v['dependencies'], flattened)
         end
