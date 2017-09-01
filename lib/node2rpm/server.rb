@@ -1,7 +1,6 @@
 require 'json'
 require 'fileutils'
 require 'rpmspec'
-require 'node_semver'
 
 module Node2RPM
   class Server
@@ -13,17 +12,6 @@ module Node2RPM
       @dest_dir = File.join(@buildroot, @sitelib)
       @specfile = RPMSpec::Parser.new(Dir.glob(@sourcedir + '/*.spec')[0]).parse
       @pkg = @specfile.name + '-' + @specfile.version
-      @bower_dir = if File.exist?(@sourcedir + '/bower_components/' + @pkg)
-                     @sourcedir + '/bower_components/' + @pkg
-                   else
-                     @sourcedir + '/bower_components'
-                   end
-      @bower_dest = if File.exist?(@dest_dir + '/' + @pkg +
-                                   '/bower_components/' + @pkg)
-                      @dest_dir + '/' + @pkg + '/bower_components/' + @pkg
-                    else
-                      @dest_dir + '/' + @pkg + '/bower_components'
-                    end
       json ||= Dir.glob(@sourcedir + '/*.json')[0]
       # json still nil means no .json in sourcedir, the packager
       # chose the traditional way to package separated modules.
@@ -32,12 +20,12 @@ module Node2RPM
 
     def prep
       puts "Checking .json's consistency"
-      check_json_consistency
+      json_consist?(@sourcedir, @json, @specfile)
       recursive_untar(@sourcedir)
       puts "Finding and renaming files created under Windows"
       rename_windows_file
       puts "Checking bower_components' consistency"
-      check_bower_consistency
+      bower_consist?(@sourcedir, flatten_json(@json))
     end
 
     def mkdir
@@ -49,12 +37,7 @@ module Node2RPM
       end
 
       return unless bower?
-      puts "Creating #{@bower_dest}"
-      FileUtils.mkdir_p @bower_dest
-      Dir.glob(@bower_dir + '/*') do |dir|
-        puts "Creating #{@bower_dest}/#{File.basename(dir)}"
-        Dir.mkdir File.join(@bower_dest, File.basename(dir))
-      end
+      make_bower_dirs(@sourcedir, @dest_dir, flatten_json(@json))
     end
 
     def copy
@@ -72,10 +55,7 @@ module Node2RPM
                    end
         recursive_copy(File.join(@sourcedir, filename), dir)
       end
-      Dir.glob(@bower_dir + '/*') do |dir|
-        dest = File.join(@bower_dest, File.basename(dir))
-        recursive_copy(dir, dest)
-      end
+      copy_bower_files(@sourcedir, @dest_dir, flatten_json(@json))
       recursive_rename
       symlink
     end
@@ -113,67 +93,6 @@ module Node2RPM
     end
 
     private
-
-    # check if the pkg version in json is the same as the specfile or the source
-    def check_json_consistency
-      source = Dir.glob(@sourcedir + '/*.{gz,tgz,bz2,xz}')
-                  .map { |i| File.basename(i, File.extname(i)) }
-                  .reject { |j| j == "bower_components" }
-      source = source_matrix(source)
-      json = flatten_json(@json)
-      wrong_keys = []
-      wrong_versions = {}
-      json.each do |k, v|
-        if source.key?(k)
-          diff = v - source[k]
-          if diff.empty?
-            if k == @specfile.name && !v.include?(@specfile.version)
-              puts "Failed: #{k}, #{@specfile.version} in specfile"
-              wrong_versions[k] = @specfile.version
-            else
-              puts "Passed: #{k}"
-            end
-          else
-            puts "Failed: #{k}, #{diff}"
-            wrong_versions[k] = diff
-          end
-        else
-          puts "Failed: #{k}"
-          wrong_keys << k
-        end
-      end
-      return if wrong_keys.empty? && wrong_versions.empty?
-      raise Node2RPM::Exception, "The following keys/versions were" +
-            " not found in the sources:\nkeys: #{wrong_keys}\n" +
-            "versions: #{wrong_versions}"
-    end
-
-    def source_matrix(source)
-      matrix = {}
-      source.each do |i|
-        m = i.match(%r{^(.*?)-v?(\d+[^/]+)$})
-        if matrix.key?(m[1])
-          matrix[m[1]] << m[2]
-        else
-          matrix[m[1]] = [m[2]]
-        end
-      end
-      matrix
-    end
-
-    def flatten_json(json, flattened = {})
-      json.each do |k, v|
-        if flattened.key?(k)
-          flattened[k] << v['version']
-        else
-          flattened[k] = [v['version']]
-        end
-        unless v['dependencies'].nil? || v['dependencies'].empty?
-          flatten_json(v['dependencies'], flattened)
-        end
-      end
-      flattened
-    end
 
     # recursively untar the tarballs in RPM sources directory
     def recursive_untar(dir)
@@ -300,39 +219,6 @@ module Node2RPM
         path = File.split(file)[0]
         puts "Renaming " + file
         FileUtils.mv file, path + File.basename(file).gsub(/\s+/, '_')
-      end
-    end
-
-    # check if the bower dependencies in bower.json are the same with the ones
-    # in bower_components
-    def check_bower_consistency
-      components = {}
-      Dir.glob(@bower_dir + '/*') do |f|
-        m = File.basename(f).match(%r{^(.*?)-v?(\d+[^/]+)$})
-        if m.nil?
-          components[File.basename(f)] = nil
-        else
-          components[m[1]] = m[2]
-        end
-      end
-      Dir.glob(@sourcedir + '/**/bower.json') do |file|
-        json = JSON.parse(open(file, 'r:UTF-8').read)
-        next if json['dependencies'].nil? || json['dependencies'].empty?
-        wrong_keys = []
-        wrong_versions = {}
-        json['dependencies'].each do |k, v|
-          if components.keys.include?(k)
-            wrong_versions[k] = [components[k], v] unless components[k].nil? || NodeSemver.satisfies(components[k], v)
-          else
-            wrong_keys << k
-          end
-        end
-        unless wrong_keys.empty? && wrong_versions.empty?
-          puts "Mis-matched keys: #{wrong_keys}"
-          puts "Mis-matched versions: #{wrong_versions}"
-          raise Node2RPM::Exception, "bower_components doesn't match " +
-                                     file
-        end
       end
     end
 

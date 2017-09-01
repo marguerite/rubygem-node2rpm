@@ -1,6 +1,6 @@
 dir = File.basename(__FILE__, File.extname(__FILE__))
 path = File.join(File.dirname(File.expand_path(__FILE__)), dir)
-Dir.glob(path + '/*').each do |i|
+Dir.glob(path + '/**/*').each do |i|
   next unless i.end_with?('.rb')
   require i.sub(File.split(path)[0] + '/', '').sub(/\.rb$/, '')
 end

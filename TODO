@@ -3,10 +3,10 @@
 * support nsp security check for the bundle.
 * consider to support the grunt auto tasks
 * rspec unit tests
-* handle recursive bower.json !important
 * bundleDependencies in package.json
 * optionalDependencies
 * devDependencies
 * noarch package !important
 * bower in provides
 * i386 buildroot are treated as i586
+* [bower]two versioned but same modules in one dir, didn't meet that case so far

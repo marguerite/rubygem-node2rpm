@@ -6,11 +6,14 @@ require 'node_semver'
 require 'fileutils'
 
 module Node2RPM
+  # define an empty array and fill it up with nodejs modules that have
+  # 'bower' as dependency
   class Bower
     def initialize
       @bower ||= []
     end
 
+    # apply on every nodejs module to fill up the bower array
     def strip(pkg, version, dependencies)
       return dependencies unless !dependencies.nil? && dependencies.key?('bower')
       @bower << [pkg, version]
@@ -22,6 +25,7 @@ module Node2RPM
       @bower
     end
 
+    # use the bower array to create bower_components.tgz
     def prepare_components(pkgs)
       return if pkgs.empty?
       puts 'Creating bower_components...'
@@ -36,26 +40,30 @@ module Node2RPM
           puts "Unpacking #{tarball}..."
           IO.popen("tar --warning=none --no-same-owner --no-same-permissions -xf #{tarball} -C #{dir} --strip-components=1").close
         end
-        bower_json = File.join(dir, 'bower.json')
+        bower_json = bower_dependencies(File.join(dir, 'bower.json'))
         dest = File.join('bower_components', pkg[0] + '-' + pkg[1])
         puts "Creating #{dest}"
         Dir.mkdir dest
+        # bower components will be put under pkg namespace
         bower_structs(bower_json).each { |d| fillup(d, dest) }
       end
-      clean_ignore('bower_components')
+      # bower package also have bower.json that requires other bower packages.
+      # we have to handle them too
+      bower_find_internal_depends('bower_components')
+      clean_ignore
       puts 'Compressing bower_components.tgz...'
       IO.popen('tar -cf bower_components.tgz bower_components').close
     end
 
     private
 
-    def bower_structs(json_file)
+    def bower_structs(json)
       structs = []
-      bower_dependencies(json_file).each do |k, v|
+      json.each do |k, v|
         s = OpenStruct.new
         s.name = k
         url = lookup(k)
-        fits = fit_versions(url + '/tags', v)
+        fits = fitted_versions(url + '/tags', v)
         s.version = NodeSemver.max_satisfying(fits, v)
         s.url = url + '/archive/' + s.version + '.tar.gz'
         structs << s
@@ -75,7 +83,7 @@ module Node2RPM
       r.response_code != '404' ? JSON.parse(r.body_str)['url'].sub('.git', '') : nil
     end
 
-    def fit_versions(url, range, versions = [])
+    def fitted_versions(url, range, versions = [])
       html = Nokogiri::HTML(open(url))
       version_objs = html.xpath('//span[@class="tag-name"]')
       tmp = []
@@ -92,18 +100,18 @@ module Node2RPM
       # above policy applies only after we have all the matches found.
       unless newlink.nil? || (tmp.empty? && !versions.empty?)
         versions.concat(tmp)
-        fit_versions(newlink, range, versions)
+        fitted_versions(newlink, range, versions)
       end
       versions
     end
 
-    def fillup(bower_dependency, dest)
-      url = bower_dependency.url
-      dir = File.join(dest, bower_dependency.name + '-' + bower_dependency.version)
+    def fillup(bower_struct, dest)
+      url = bower_struct.url
+      dir = File.join(dest, bower_struct.name + '-' + bower_struct.version)
       tarball = File.join(dest, File.basename(url))
       unless File.exist?(dir)
-        puts "Downloading #{bower_dependency.url}..."
-        IO.popen("wget -c #{bower_dependency.url} -O #{tarball}").close
+        puts "Downloading #{bower_struct.url}..."
+        IO.popen("wget -c #{bower_struct.url} -O #{tarball}").close
         Dir.mkdir dir
         puts "Unpacking #{tarball}..."
         IO.popen("tar --warning=none --no-same-owner --no-same-permissions -xf #{tarball} -C #{dir} --strip-components=1").close
@@ -112,8 +120,34 @@ module Node2RPM
       end
     end
 
-    def clean_ignore(dir)
-      Dir.glob(dir + '/**/bower.json').each do |f|
+    def bower_find_internal_depends(dir)
+      Dir.glob(dir + '/**/bower.json').each do |b|
+        json = JSON.parse(open(b, 'r:UTF-8').read)
+        next if json['dependencies'].nil? || json['dependencies'].empty?
+        path = b.match(%r{^(.*?bower_components/.*?/)})[1]
+        pkgs = Dir.glob(path + '/*').map {|i| File.basename(i)}
+        pkgs = handle_pkgs(pkgs)
+        # FIXME: what if the key match, but version don't
+        depends = json['dependencies'].reject {|j| pkgs.key?(j) }
+        next if depends.empty?
+        bower_structs(depends).each do |d|
+          fillup(d, path)
+          bower_find_internal_depends(path + '/' + d)
+        end
+      end
+    end
+
+    def handle_pkgs(pkgs)
+      h = {}
+      pkgs.each do |i|
+        next unless i =~ %r{^(.*?)-v?(\d+[^/]+)$}
+        h[Regexp.last_match(1)] = Regexp.last_match(2)
+      end
+      h
+    end
+
+    def clean_ignore
+      Dir.glob('bower_components/**/bower.json').each do |f|
         json = JSON.parse(open(f, 'r:UTF-8').read)
         dir = File.dirname(f)
         json['ignore'].each do |i|

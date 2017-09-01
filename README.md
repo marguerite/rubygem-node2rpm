@@ -1,6 +1,6 @@
 Node2RPM
 
-=====
+------
 
 [![Code Climate](https://codeclimate.com/github/marguerite/rubygem-node2rpm/badges/gpa.svg)](https://codeclimate.com/github/marguerite/rubygem-node2rpm)
 
