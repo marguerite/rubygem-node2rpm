@@ -228,10 +228,12 @@ module Node2RPM
       return if @specfile.requires.nil?
       m = {}
       @specfile.requires.each do |s|
+        next unless s.name =~ /^npm\(/
         name = s.name.match(/^npm\((.*)\)$/)[1]
         version = s.version
         m[name] = version
       end
+      return if m.empty?
       m
     end
 
