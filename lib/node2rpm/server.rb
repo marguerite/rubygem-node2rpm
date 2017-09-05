@@ -96,7 +96,7 @@ module Node2RPM
 
     # recursively untar the tarballs in RPM sources directory
     def recursive_untar(dir)
-      Dir.glob(dir + '/*.{gz,tgz,bz2,xz}') do |tar|
+      Dir.glob(dir + '/*.{tar.gz,tgz,bz2,xz}') do |tar|
         tarname = File.basename(tar, File.extname(tar))
         # if the dir contains only one file
         file_num = Dir.glob(dir + '/*').size
@@ -106,7 +106,7 @@ module Node2RPM
                               File.basename(dir), file_num)
         dest = post_process_tardir(tardir, unpacked_tardir,
                                    dir, file_num)
-        tars = Dir.glob(dest + '/**/*.{gz,tgz,bz2,xz}')
+        tars = Dir.glob(dest + '/**/*.{tar.gz,tgz,bz2,xz}')
         next if tars.empty?
         tars.each { |t| recursive_untar(File.split(t)[0]) }
       end

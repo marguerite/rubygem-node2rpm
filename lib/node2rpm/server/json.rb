@@ -29,7 +29,7 @@ module Node2RPM
 
     # check if the pkg version in json is the same as the specfile or the source
     def json_consist?(sourcedir, json, specfile)
-      source = Dir.glob(sourcedir + '/*.{gz,tgz,bz2,xz}')
+      source = Dir.glob(sourcedir + '/*.{tar.gz,tgz,bz2,xz}')
                   .map { |i| File.basename(i, File.extname(i)) }
                   .reject { |j| j == 'bower_components' }
       source = source_matrix(source)
