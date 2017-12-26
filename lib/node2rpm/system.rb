@@ -49,11 +49,7 @@ module Node2RPM
     end
 
     def arch
-      # this is really ugly
-      io = IO.popen('uname -m')
-      arch = io.readline.strip!
-      io.close
-      arch
+      ENV['RPM_ARCH']
     end
   end
 end
