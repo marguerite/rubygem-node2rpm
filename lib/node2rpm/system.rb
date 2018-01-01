@@ -30,8 +30,7 @@ module Node2RPM
     def buildroot
       # we need to create it ourselves
       specfile = RPMSpec::Parser.new(Dir.glob(sourcedir + '/*.spec')[0]).parse
-      buildroot = @root + '/BUILDROOT/' + specfile.name + '-' + \
-                  specfile.version + '-' + specfile.release + '.' + arch
+      buildroot = @root + '/BUILDROOT/' + specfile.name + '-' + specfile.version + '-' + specfile.release + '.' + arch
       Dir.mkdir buildroot unless File.exist? buildroot
       buildroot
     end
@@ -49,7 +48,17 @@ module Node2RPM
     end
 
     def arch
-      ENV['RPM_ARCH']
+      stat = '/tmp/rpm_arch'
+      if ENV['RPM_ARCH'].nil?
+	open(stat,'r:UTF-8').read.strip
+      else
+	unless File.exist?(stat)
+	  open(stat, 'w:UTF-8') do |f|
+	    f.write ENV['RPM_ARCH']
+	  end
+	end
+	ENV['RPM_ARCH']
+      end
     end
   end
 end
