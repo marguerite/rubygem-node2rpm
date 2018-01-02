@@ -29,7 +29,7 @@ module Node2RPM
         range = Node2RPM::History.new(k).all
         version = NodeSemver.max_satisfying(range, v)
         if version.nil?
-          raise Node2RPM::Exception, "#{@pkg}'s dependency #{k} " \
+          raise "#{@pkg}'s dependency #{k} " \
                 "has nil-matched version! Raw version range: #{v}. " \
                 "All available versions: #{range}. Usually it means " \
                 "you need to clear your cache at /tmp/node2rpm." 

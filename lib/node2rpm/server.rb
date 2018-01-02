@@ -137,11 +137,9 @@ module Node2RPM
 
     def correct_unpacked_tardir(dir)
       # bower.json is always downcased
-      tardir = dir.dup.downcase
+      dir = dir.downcase if bower?
       # escape common suffix
-      m = tardir.match(%r{^.*?(-(bower|dist)).*$})
-      tardir = tardir.gsub(m[1], '') unless m.nil?
-      tardir
+      dir.gsub!(%r{^(.*?)(-(bower|dist))?(.*)$}, '\1\4')
     end
 
     def guess_tardir(unpacked, tarname, parent, num)
@@ -165,7 +163,7 @@ module Node2RPM
       if u.nil?
         # unpacked has no version, then it must have a name
         if t.nil?
-          raise Node2RPM::Exception, unpacked + " doesn't have version"
+          raise unpacked + " doesn't have version"
         else
           return unpacked + '-' + t[2]
         end
@@ -174,7 +172,7 @@ module Node2RPM
         if t.nil?
           return tarname + '-' + u[2]
         elsif t[1].nil?
-          raise Node2RPM::Exception, unpacked + " doesn't have name"
+          raise unpacked + " doesn't have name"
         else
           return t[1] + '-' + u[2]
         end

@@ -29,7 +29,7 @@ module Node2RPM
         open(@filename, 'w:UTF-8') { |f| f.write JSON.pretty_generate(json) }
         json
       else
-        raise Node2RPM::Exception, 'No such node module ' \
+        raise 'No such node module ' \
           + @url.sub(REGISTRY, '') + '. please check your spelling.'
       end
     end
