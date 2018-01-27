@@ -101,10 +101,10 @@ module Node2RPM
         # if the dir contains only one file
         file_num = Dir.glob(dir + '/*').size
         puts "Untaring #{tar}"
-        unpacked_tardir = unpack(tar, dir, tarname)
-        tardir = guess_tardir(unpacked_tardir, tarname,
+        unpack(tar, dir, tarname)
+        tardir = guess_tardir(tarname, tarname,
                               File.basename(dir), file_num)
-        dest = post_process_tardir(tardir, unpacked_tardir,
+        dest = post_process_tardir(tardir, tarname,
                                    dir, file_num)
         tars = Dir.glob(dest + '/**/*.{tar.gz,tgz,bz2,xz}')
         next if tars.empty?
@@ -112,27 +112,13 @@ module Node2RPM
       end
     end
 
-    # unpack a tarball and return its unpacked directory name
+    # unpack a tarball
     def unpack(tar, dir, tarname)
-      before = Dir.glob(dir + '/*')
-      cmd = 'tar -xf ' + tar + ' -C ' + dir + ' --warning=none ' \
-            '--no-same-owner --no-same-permissions'
+      tardir = File.join(dir, tarname)
+      FileUtils.mkdir_p tardir
+      cmd = 'tar -xf ' + tar + ' -C ' + tardir + ' --strip-components=1 ' \
+            '--warning=none --no-same-owner --no-same-permissions'
       IO.popen(cmd).close
-      # if it unpacks to 'package', rename to the tarball's name
-      rename_npm_registry_package(tarname, dir)
-      after = Dir.glob(dir + '/*')
-      File.basename((after - before)[0])
-    end
-
-    # packages from npm registry usually unpack to the name 'package'
-    # in recursively unpacking, we have to free such namespace
-    def rename_npm_registry_package(name, dir)
-      source = File.join(dir, 'package')
-      dest = File.join(dir, name)
-      if File.exist?(source)
-        puts "Renaming #{source} to #{dest}"
-        FileUtils.mv source, dest
-      end
     end
 
     def correct_unpacked_tardir(dir)
@@ -196,7 +182,7 @@ module Node2RPM
     def post_process_tardir(tardir, unpacked, dir, num)
       dest = File.join(dir, tardir)
       source = File.join(dir, unpacked)
-      unless File.exist?(dest)
+      unless File.exist?(dest) || source == dest
         puts "Renaming #{source} to #{dest}"
         FileUtils.mv source, dest
       end
