@@ -20,6 +20,14 @@ def distro
   distro
 end
 
+def parse_source(file)
+  text = ''
+  RPMSpec::Parser.new(file).parse.source.each do |i|
+    text << 'Source' + i.modifier + ":\s" + i.name + "\n"
+  end
+  text
+end
+
 def form_source(arr)
   str = ''
   i = 0
@@ -104,11 +112,9 @@ sources << bower unless bower_pkgs.empty?
 dest_specfile = File.join(options[:path], options[:name] + '.spec')
 
 if File.exist?(dest_specfile)
-  f = open(dest_specfile).read
+  f = open(dest_specfile, 'r:UTF-8').read
   # replace source, licenses and version
-  sourceobj = RPMSpec::Source.new(f)
-  oldsource = sourceobj.sources
-  new_specfile = f.sub(sourceobj.inspect(oldsource), form_source(sources))
+  new_specfile = f.sub(parse_source(dest_specfile), form_source(sources))
                   .sub(/License:.*?\n/m, "License:\t#{Node2RPM.licenses(json)}\n")
                   .sub(/Version:.*?\n/m, "Version:\t#{version}\n")
   puts "Updating #{options[:name]}.spec..."
