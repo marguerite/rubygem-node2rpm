@@ -5,7 +5,7 @@ module Node2RPM
     def initialize(pkg, ver)
       @pkg = pkg
       @ver = ver
-      @json = Node2RPM::Download.new(@pkg).get
+      @json = Node2RPM::Registry.new(@pkg).get
       @history = Node2RPM::History.new(@pkg)
       @version = @history.include?(@ver) ? @ver : @history.last
       @resp = @json['versions'][@version]

@@ -4,7 +4,7 @@ module Node2RPM
   class Dependency
     def initialize(pkg, version)
       @pkg = pkg
-      @json = Node2RPM::Download.new(@pkg).get
+      @json = Node2RPM::Registry.new(@pkg).get
       @version = if Node2RPM::History.new(@pkg).include?(version)
                    version
                  else

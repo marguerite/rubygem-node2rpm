@@ -1,7 +1,7 @@
 module Node2RPM
   class History
     def initialize(pkg)
-      @json = Node2RPM::Download.new(pkg).get
+      @json = Node2RPM::Registry.new(pkg).get
     end
 
     def all
