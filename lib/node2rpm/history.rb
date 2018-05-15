@@ -1,31 +1,24 @@
 module Node2RPM
   class History
     def initialize(pkg)
-      @json = Node2RPM::Registry.new(pkg).get
+      json = Node2RPM::Registry.new(pkg).get
+      # can't use json['time'] blindly, eg is-extglob,
+      # some versions there don't exist in json['versions']
+      @history = Hash[json['versions'].map { |k, v| [k, Time.parse(json['time'][k])] }]
+      # sort_by time
+      @history_sorted = Hash[@history.sort_by {|k,v| v}]
     end
 
-    def all
-      @all = {}
-      # can't use @json['time'] directly, eg is-extglob,
-      # some versions there doesn't exist in @json['versions']
-      @json['versions'].keys.each do |k|
-        @all[k] = Time.parse(@json['time'][k])
-      end
-      @all.keys
+    def versions
+      @history.keys
     end
 
-    def last
-      all
-      last = @all.values[0]
-      @all.values.each do |v|
-        last = v.utc if v.utc > last.utc
-      end
-      @all.key(last)
+    def latest
+      @history_sorted.keys[-1]
     end
 
     def include?(version)
-      all
-      @all.keys.include?(version) ? true : false
+      versions.include?(version)
     end
   end
 end

@@ -49,7 +49,7 @@ module Node2RPM
 
     def header_time
       http = Curl::Easy.perform(@uri)
-      Time.parse(http.header_str.match(/Last-Modified:(.*?)\n/m)[1].strip)
+      Time.parse(http.header_str.match(/(l|L)ast-(m|M)odified:(.*?)\n/m)[3].strip)
     end
 
     def timed_filename

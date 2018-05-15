@@ -3,12 +3,10 @@ module Node2RPM
   # mainly we need the license and the upstream url.
   class Attr
     def initialize(pkg, ver)
-      @pkg = pkg
-      @ver = ver
-      @json = Node2RPM::Registry.new(@pkg).get
-      @history = Node2RPM::History.new(@pkg)
-      @version = @history.include?(@ver) ? @ver : @history.last
-      @resp = @json['versions'][@version]
+      json = Node2RPM::Registry.new(pkg).get
+      history = Node2RPM::History.new(pkg)
+      version = history.include?(ver) ? ver : history.latest
+      @resp = json['versions'][version]
     end
 
     def method_missing(tag)

@@ -5,7 +5,7 @@ module Node2RPM
       @version = if Node2RPM::History.new(@pkg).include?(version)
                    version
                  else
-                   Node2RPM::History.new(@pkg).last
+                   Node2RPM::History.new(@pkg).latest
                  end
       @bower = Node2RPM::Bower.new
     end
