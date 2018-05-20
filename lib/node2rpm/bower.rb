@@ -9,20 +9,8 @@ module Node2RPM
   # define an empty array and fill it up with nodejs modules that have
   # 'bower' as dependency
   class Bower
-    def initialize
-      @bower ||= []
-    end
-
-    # apply on every nodejs module to fill up the bower array
-    def strip(pkg, version, dependencies)
-      return dependencies unless !dependencies.nil? && dependencies.key?('bower')
-      @bower << [pkg, version]
-      dependencies.delete('bower')
-      dependencies
-    end
-
-    def status
-      @bower
+    def initialize(pkgs)
+      @bower = pkgs
     end
 
     # use the bower array to create bower_components.tgz

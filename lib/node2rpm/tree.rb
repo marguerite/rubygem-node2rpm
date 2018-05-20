@@ -7,7 +7,6 @@ module Node2RPM
                  else
                    Node2RPM::History.new(@pkg).latest
                  end
-      @bower = Node2RPM::Bower.new
     end
 
     def generate(options)
@@ -22,7 +21,6 @@ module Node2RPM
 
       dependencies = Node2RPM::Dependency.new(pkg, version).dependencies
       Node2RPM::Logger.new("dependencies of #{pkg}-#{version}: #{dependencies}")
-      dependencies = @bower.strip(pkg, version, dependencies)
       license = Node2RPM::Attr.new(pkg, version).license
       Node2RPM::Logger.new("license of #{pkg}: #{license}")
 
@@ -39,16 +37,16 @@ module Node2RPM
       if mega.empty?
         mega[pkg] = { version: version, parent: parent, parver: parver,
                       license: license, dependencies: {} }
-        deps.call(pkg)
-      elsif Node2RPM::JSONObject.new(mega).include?(pkg, version)
+	deps.call(pkg)
+      elsif Node2RPM::Json.new(pkg, version, mega).include?
         # This indicates we have at least two modules rely on the same
         # dependency. usually we keep the shortest path, so we put
         # this dependency under the same parent of those two modules:
         # par_old finds the location of the existing one;
         # par_new uses the location of the parent of the pkg to be inserted,
         # because the new pkg hasn't been inserted, no way to use itself.
-        par_old = Node2RPM::Parent.new(pkg, version, mega).parents
-        par_new = Node2RPM::Parent.new(parent, parver, mega).parents
+        par_old = Node2RPM::Json.new(pkg, version, mega).parents
+        par_new = Node2RPM::Json.new(parent, parver, mega).parents
         par_new << parent # form parents for the same pkg
         intersected = intersect(par_old, par_new)
 
@@ -62,32 +60,31 @@ module Node2RPM
         #         2. no need to move at all
         unless intersected.empty? || intersected == par_old
           Node2RPM::Logger.new("moving from #{par_old} to #{intersected}")
-          Node2RPM::Parent.new(oldpar, oldparver, mega).walk.delete(pkg)
+          Node2RPM::Json.new(oldpar, oldparver, mega).drop(pkg)
 
-          if Node2RPM::Parent.new(newpar, newparver, mega).walk[pkg].nil?
+          if Node2RPM::Json.new(newpar, newparver, mega).nested[pkg].nil?
             to_add = pkg
-          elsif Node2RPM::Parent.new(newpar, newparver, mega).walk[pkg][:version] != version
+          elsif Node2RPM::Json.new(newpar, newparver, mega).nested[pkg][:version] != version
             to_add = pkg + '@' + version
           end
 
           unless to_add.nil?
-            Node2RPM::Parent.new(newpar, newparver, mega)
-                            .walk[to_add] = { version: version, parent: newpar,
-                                              parver: newparver, license: license,
-                                              dependencies: {} }
+            mega = Node2RPM::Json.new(newpar, newparver, mega)
+                                 .insert(to_add, version: version, parent: newpar,
+                                                 parver: newparver, license: license,
+                                                 dependencies: {})
             deps.call(to_add)
           end
         end
       elsif !Node2RPM::Exclusion.new(exclusion).exclude?(pkg, version)
         # occur the first time, so apply exclusion here.
         # we need to escape for some dependencies to allow package split.
-        walker = Node2RPM::Parent.new(parent, parver, mega).walk
-        walker[pkg] = { version: version, parent: parent, parver: parver,
-                        license: license, dependencies: {} }
+        mega = Node2RPM::Json.new(parent, parver, mega)
+                             .insert(pkg, version: version, parent: parent, parver: parver,
+                                          license: license, dependencies: {})
         deps.call(pkg)
       end
-
-      [mega, @bower.status]
+      [mega, []]
     end
 
     private
