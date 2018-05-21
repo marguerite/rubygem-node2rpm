@@ -9,10 +9,6 @@ module Node2RPM
       @bower_pkg = {}
     end
 
-    def dependencies
-      process_dependency(@pkg, @ver, 'dependencies')
-    end
-
     def get(**options)
       opt = fill_options(@pkg, @ver, options)
       d = process_dependency(opt.pkg, opt.version)
@@ -26,13 +22,22 @@ module Node2RPM
       end
 
       if opt.json.empty?
-        opt.json = json_default(opt, license)
+        opt.json = json_default(opt, l)
 	lam.call(opt.pkg)
-      #elsif
-
+      elsif Node2RPM::Json.new(opt.pkg, opt.version, opt.json).include?
+        # This indicates we have at least two modules rely on the same
+	# dependency. usually we keep the shortest path, so we put
+	# this dependency under the same parent of those two modules:
+        dedupe_parents, dedupe_opt = dedupe(opt)
+	pkg = to_insert(dedupe_opt, opt)
+	unless dedupe_parents || pkg
+          opt.json = Node2RPM::Json.new(opt.parent, opt.parentversion, opt.json).drop(pkg)
+	  opt.json = Node2RPM::Json.new(dedupe_opt.parent, dedupe_opt.version, opt.json).insert(pkg, json_new(l, dedupe_opt))
+	  lam.call(pkg)
+	end
       elsif Node2RPM::Exclusion.new(exclusion).without?(pkg, version)
 	opt.json = Node2RPM::Json.new(opt.parent, opt.parentversion, opt.json)
-		                 .insert(pkg, json_new(license, opt))
+		                 .insert(pkg, json_new(l, opt))
 	lam.call(opt.pkg)
       end
 
@@ -107,6 +112,49 @@ module Node2RPM
       	      "range: #{reg}"
       end
       m
+    end
+
+    def dedupe(opt)
+      # old: the parents of the existing pkg in the tree
+      # new: the parents of the parent of the pkg to be added
+      #      since the pkg to be added hasn't been in the tree
+      #      yet, thus no way to find parents
+      old = Node2RPM::Json.new(opt.pkg, opt.version, opt.json).parents
+      new = Node2RPM::Json.new(opt.parent, opt.parentversion, opt.json).parents << opt.parent
+      # ["_root", "gulp", ..., "is-descriptor", "lazy-cache"]
+      # ["_root", "gulp", ..., "collection-visit", "lazy-cache"]
+      # the "lazy-cache" has to be stripped from the intersected path  
+      # because it is also a multi-occured pkg that needs to be deduped later.
+      # keeping it will lead to an invalid path.
+      # [1,2,3,4,6,7] - [1,2,3,4,5,7,10] = [6]
+      i = old.find_index((old - new)[1]) - 1
+      d = old[0..i]
+      return [nil, nil] if d.empty? || d == old
+      parent = d[-1]
+      version = parent_version(parent, opt.json)
+      [d, OpenStruct.new(parent: parent, version: opt.version, parentversion: version)]
+    end
+
+    def parent_version(parents, json)
+      path = intersperse(parents, :dependencies)
+      json.dig(*path)[:version]
+    end
+
+    def intersperse(parents, sym)
+      # ['_root', 'gulp', 'is-descriptor', 'lazy-cache']
+      parents[1..-1].flat_map {|i| [i, sym] }.tap(&:pop)
+    end
+
+    def to_insert(dedupe_opt, opt)
+      # delete old chain from tree
+      json = Node2RPM::Json.new(dedupe_opt.parent, dedupe_opt.parentversion, opt.json).locate(opt.pkg)
+      if json.nil?
+	opt.pkg
+      elsif json[:version] != opt.version
+	opt.pkg + '@' + opt.version
+      else
+	nil
+      end
     end
   end
 end

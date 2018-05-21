@@ -25,8 +25,8 @@ module Node2RPM
               .nil?
     end
 
-    def nested
-      @json.dig(*@path)[:dependencies]
+    def locate(pkg)
+      @json.dig(*@path)[:dependencies][pkg]
     end
 
     def insert(pkg, hash)

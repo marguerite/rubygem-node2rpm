@@ -9,7 +9,7 @@ require 'ostruct'
 
 module Node2RPM
   def self.generate(pkg, ver, exclude)
-    Node2RPM::Tree.new(pkg, ver).generate(exclusion: exclude)
+    Node2RPM::Dependency.new(pkg, ver).get(exclusion: exclude)
   end
 
   def self.version(json)
